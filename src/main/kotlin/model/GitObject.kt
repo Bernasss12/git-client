@@ -1,13 +1,12 @@
-package model.`object`
+package model
 
 import util.ByteArrayBuilder
+import util.asString
 import util.model.Hash
-import util.model.asString
-import util.model.takeLastUntil
-import util.model.takeUntil
+import util.takeLastUntil
+import util.takeUntil
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.lang.IllegalStateException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.zip.DeflaterOutputStream
@@ -20,7 +19,7 @@ sealed class GitObject {
             return ROOT.resolve(Path.of(hash.take(2), hash.drop(2)))
         }
 
-        fun splitHeaderAndContent(byteArray: ByteArray): Pair<ByteArray, ByteArray> {
+        private fun splitHeaderAndContent(byteArray: ByteArray): Pair<ByteArray, ByteArray> {
             return byteArray.takeUntil { it == 0.toByte() } to byteArray.takeLastUntil { it == 0.toByte() }
         }
 
@@ -38,6 +37,8 @@ sealed class GitObject {
                 }
             }
         }
+
+
     }
 
     fun writeToFile() {

@@ -1,4 +1,4 @@
-package util.model
+package util
 
 import java.nio.charset.Charset
 

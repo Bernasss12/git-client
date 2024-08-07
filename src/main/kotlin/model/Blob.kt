@@ -1,6 +1,6 @@
-package model.`object`
+package model
 
-import util.model.asString
+import util.asString
 
 class Blob(val byteArray: ByteArray) : GitObject() {
 
