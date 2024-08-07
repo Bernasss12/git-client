@@ -16,8 +16,7 @@ value class Hash(private val hash: String) {
     companion object {
         fun fromByteArray(hash: ByteArray): Hash {
             require(hash.size == 20) { "Hash ByteArray should be 20 bytes long:\n[${hash.joinToString { it.toString() }}] (${hash.size})" }
-            val stringHash = hash.joinToString { it.toHexString() }
-            System.err.println(hash.joinToString { it.toString() })
+            val stringHash = hash.joinToString("") { it.toHexString() }
             require(stringHash.length == 40) { "[fromByteArray] Hash string length should be 40 characters long:\n[$stringHash] (${stringHash.length})" }
             return Hash(stringHash)
         }
