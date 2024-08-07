@@ -27,4 +27,6 @@ value class Hash(private val hash: String) {
             return fromByteArray(hash)
         }
     }
+
+    override fun toString(): String = hash
 }
