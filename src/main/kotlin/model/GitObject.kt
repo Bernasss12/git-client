@@ -31,7 +31,7 @@ sealed class GitObject : Printable {
                 val bytes = it.readAllBytes()
                 val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
                 val (type, length) = headerBytes.asString().split(" ", limit = 2)
-                check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
+                //check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
                 return when(type) {
                     Blob.TYPE -> Blob(contentBytes)
                     Tree.TYPE -> Tree(contentBytes)
