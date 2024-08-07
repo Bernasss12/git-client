@@ -25,5 +25,6 @@ object HashObject : Subcommand("hash-object", "Compute object ID and optionally 
         if (write) {
             blob.writeToFile()
         }
+        println(blob.getHash())
     }
 }
