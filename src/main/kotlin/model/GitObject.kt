@@ -44,7 +44,7 @@ sealed class GitObject {
     fun writeToFile() {
         val file = getPath().toFile()
         if (file.exists()) return
-        if (!file.mkdirs() && !file.parentFile.exists()) {
+        if (!file.parentFile.mkdirs() && !file.parentFile.exists()) {
             System.err.println("Failed to create parent file: ${file.parentFile}")
             return
         }
