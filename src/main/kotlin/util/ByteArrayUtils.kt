@@ -2,7 +2,7 @@ package util
 
 import java.nio.charset.Charset
 
-inline fun ByteArray.takeUntil(
+inline fun ByteArray.consumeUntil(
     predicate: (Byte) -> Boolean
 ): ByteArray {
     val iterator = iterator()
@@ -29,3 +29,28 @@ inline fun ByteArray.takeLastUntil(
 }
 
 fun ByteArray.asString(charset: Charset = Charsets.UTF_8) = String(this, charset)
+
+fun buildByteArray(block: ByteArrayBuilder.() -> Unit): ByteArray {
+    val bytes = ByteArrayBuilder()
+    block.invoke(bytes)
+    return bytes.build()
+}
+
+
+fun ByteArray.split(char: Char): List<ByteArray> = this.split(char.code.toByte())
+
+fun ByteArray.split(byte: Byte): List<ByteArray> {
+    val iterator = iterator()
+    val list = mutableListOf<ByteArray>()
+    var bytes = byteArrayOf()
+    while (iterator.hasNext()) {
+        val current = iterator.next()
+        if (current == byte) {
+            list.add(bytes.copyOf())
+            bytes = byteArrayOf()
+        } else {
+            bytes += current
+        }
+    }
+    return list.toList()
+}

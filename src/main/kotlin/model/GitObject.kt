@@ -1,10 +1,11 @@
 package model
 
-import util.ByteArrayBuilder
+import api.Printable
 import util.asString
+import util.buildByteArray
+import util.consumeUntil
 import util.model.Hash
 import util.takeLastUntil
-import util.takeUntil
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Path
@@ -12,7 +13,7 @@ import java.nio.file.Paths
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.InflaterInputStream
 
-sealed class GitObject {
+sealed class GitObject : Printable {
     companion object {
         private val ROOT: Path = Paths.get(".git", "objects")
         private fun getPath(hash: Hash): Path {
@@ -20,7 +21,7 @@ sealed class GitObject {
         }
 
         private fun splitHeaderAndContent(byteArray: ByteArray): Pair<ByteArray, ByteArray> {
-            return byteArray.takeUntil { it == 0.toByte() } to byteArray.takeLastUntil { it == 0.toByte() }
+            return byteArray.consumeUntil { it == 0.toByte() } to byteArray.takeLastUntil { it == 0.toByte() }
         }
 
         fun readFromFile(hash: Hash): GitObject? {
@@ -33,12 +34,11 @@ sealed class GitObject {
                 check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
                 return when(type) {
                     Blob.TYPE -> Blob(contentBytes)
+                    Tree.TYPE -> Tree(contentBytes)
                     else -> throw IllegalStateException("[$type] is not an implemented git object type.")
                 }
             }
         }
-
-
     }
 
     fun writeToFile() {
@@ -54,11 +54,11 @@ sealed class GitObject {
         }
     }
 
-    fun getHeader(): ByteArray = ByteArrayBuilder.build {
+    fun getHeader(): ByteArray = buildByteArray {
         appendString(getType())
         appendSpace()
         appendString(getLength())
-        appendNullChar()
+        appendNull()
     }
 
     abstract fun getContent(): ByteArray
@@ -66,8 +66,6 @@ sealed class GitObject {
 
     abstract fun getType(): String
     abstract fun getLength(): Int
-
-    abstract fun getPrintableString(): String
 
     fun getPath() = getPath(getHash())
     fun getHash() = Hash.fromContentBytes(getHeaderAndContent())

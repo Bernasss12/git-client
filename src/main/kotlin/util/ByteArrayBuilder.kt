@@ -1,14 +1,6 @@
 package util
 
 class ByteArrayBuilder {
-    companion object {
-        fun build(block: ByteArrayBuilder.() -> Unit) : ByteArray {
-            val bytes = ByteArrayBuilder()
-            block.invoke(bytes)
-            return bytes.build()
-        }
-    }
-
     private var array = byteArrayOf()
 
     fun appendByte(byte: Byte) {
@@ -35,8 +27,8 @@ class ByteArrayBuilder {
         appendChar(' ')
     }
 
-    fun appendNullChar() {
-        appendChar('\u0000')
+    fun appendNull() {
+        appendByte(NULL_BYTE)
     }
 
     fun build(): ByteArray = array

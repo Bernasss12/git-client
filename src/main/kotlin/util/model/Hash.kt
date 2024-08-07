@@ -28,5 +28,9 @@ value class Hash(private val hash: String) {
         }
     }
 
+    fun toBytes(): ByteArray {
+        return hash.chunked(2).map { it.hexToByte() }.toByteArray()
+    }
+
     override fun toString(): String = hash
 }
