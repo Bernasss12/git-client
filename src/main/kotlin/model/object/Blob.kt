@@ -1,5 +1,7 @@
 package model.`object`
 
+import util.model.asString
+
 class Blob(val byteArray: ByteArray) : GitObject() {
 
     companion object {
@@ -12,6 +14,6 @@ class Blob(val byteArray: ByteArray) : GitObject() {
 
     override fun getType(): String = TYPE
     override fun getLength(): Int = byteArray.size
-    override fun getPrintableString(): String = byteArray.toString()
+    override fun getPrintableString(): String = byteArray.asString()
 
 }

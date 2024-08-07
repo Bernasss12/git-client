@@ -2,6 +2,7 @@ package model.`object`
 
 import util.ByteArrayBuilder
 import util.model.Hash
+import util.model.asString
 import util.model.takeLastUntil
 import util.model.takeUntil
 import java.io.FileInputStream
@@ -29,7 +30,7 @@ sealed class GitObject {
             InflaterInputStream(FileInputStream(file)).use {
                 val bytes = it.readAllBytes()
                 val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
-                val (type, length) = headerBytes.toString().split(" ", limit = 2)
+                val (type, length) = headerBytes.asString().split(" ", limit = 2)
                 check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
                 return when(type) {
                     Blob.TYPE -> Blob(contentBytes)
