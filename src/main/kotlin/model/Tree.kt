@@ -33,7 +33,9 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
         fun fromDirectory(folder: File, write: Boolean): Tree {
             check(folder.isDirectory) { "$folder is not a directory." }
             return Tree(
-                folder.listFiles()?.map { file ->
+                folder.listFiles()?.filter {
+                    it.name != ".git"
+                }?.map { file ->
                     val gitObject = if (file.isDirectory) {
                         fromDirectory(file, write)
                     } else {
