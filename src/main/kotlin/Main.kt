@@ -10,7 +10,6 @@ fun main(args: Array<String>) {
     parser.parse(args)
 }
 
-
 fun debug(string: String) {
     System.err.println(string)
 }

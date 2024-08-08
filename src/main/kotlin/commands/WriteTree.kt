@@ -9,7 +9,7 @@ import java.nio.file.Paths
 
 object WriteTree : Subcommand("write-tree", "Writes current directory's files to folder.") {
     override fun execute() {
-        val currentDirectory = Paths.get("").toFile()
+        val currentDirectory = Paths.get(".").toFile()
         Tree.fromDirectory(currentDirectory, false)
     }
 }
