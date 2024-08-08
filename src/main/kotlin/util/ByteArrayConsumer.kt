@@ -2,9 +2,12 @@ package util
 
 class ByteArrayConsumer(private var bytes: ByteArray) {
     fun consumeUntil(byte: Byte): ByteArray {
+        System.err.println("Start: ${String(bytes)}")
         val index = bytes.indexOf(byte)
         val result = consume(index)
+        System.err.println("Result: ${String(result)}")
         erase(index + 1)
+        System.err.println("End: ${String(bytes)}")
         return result
     }
 
