@@ -36,6 +36,8 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
                         fromDirectory(file, write)
                     } else {
                         Blob.fromFile(file)
+                    }.also {
+                        if (write) it.writeToFile()
                     }
 
                     return@map TreeEntry(
@@ -47,7 +49,9 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
                         hash = gitObject.getHash()
                     )
                 } ?: emptyList()
-            )
+            ).also {
+                if (write) it.writeToFile()
+            }
         }
     }
 
