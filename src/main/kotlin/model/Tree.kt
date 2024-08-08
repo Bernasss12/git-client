@@ -11,17 +11,19 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     constructor(entries: List<TreeEntry>) : this(
         entries = entries,
         bytes = buildByteArray {
-            entries.forEach { entry -> appendByteArray(entry.toBytes()) }
+            getSorted(entries).forEach { entry -> appendByteArray(entry.toBytes()) }
         }
     )
 
     constructor(bytes: ByteArray) : this(
-        entries = buildList {
-            val consumer = ByteArrayConsumer(bytes)
-            while (consumer.hasNextTreeEntry()) {
-                add(TreeEntry.consumeBytes(consumer))
+        entries = getSorted(
+            buildList {
+                val consumer = ByteArrayConsumer(bytes)
+                while (consumer.hasNextTreeEntry()) {
+                    add(TreeEntry.consumeBytes(consumer))
+                }
             }
-        },
+        ),
         bytes = bytes
     )
 
@@ -53,6 +55,11 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
                 if (write) it.writeToFile()
             }
         }
+
+        fun getSorted(list: List<TreeEntry>) = list.sortedWith(
+            compareBy<TreeEntry> { it.path }
+                .thenBy { it.gitObject?.getHash()?.toString() ?: "" }
+        )
     }
 
     override fun getContent(): ByteArray = bytes
@@ -62,23 +69,20 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     override fun getLength(): Int = getContent().size
 
     override fun getPrintableString(): String = buildString {
-        getSortedChildren().forEach {
+        getSortedEntries().forEach {
             append(it.getPrintableString())
             append('\n')
         }
     }
 
     fun getPrintableStringNameOnly(): String = buildString {
-        getSortedChildren().forEach {
+        getSortedEntries().forEach {
             append(it.path)
             append('\n')
         }
     }
 
-    private fun getSortedChildren(): List<TreeEntry> = entries.sortedWith(
-        compareBy<TreeEntry> { it.path }
-            .thenBy { it.gitObject?.getHash()?.toString() ?: "" }
-    )
+    private fun getSortedEntries(): List<TreeEntry> = getSorted(entries)
 
     data class TreeEntry(val permission: Permission, val path: String, val hash: Hash) : Printable {
 
