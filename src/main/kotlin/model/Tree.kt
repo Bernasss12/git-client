@@ -45,6 +45,7 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     }
 
     fun getPrintableStringNameOnly(): String = buildString {
+        System.err.println(entries.joinToString())
         getSortedChildren().forEach {
             append(it.path)
             append('\n')
