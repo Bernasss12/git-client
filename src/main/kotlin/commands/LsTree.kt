@@ -17,7 +17,6 @@ object LsTree : Subcommand("ls-tree", "List the contents of a tree object") {
     override fun execute() {
         val gitObject = requireNotNull(GitObject.readFromFile(Hash(hash))) { "Tree object not found: $hash" }
         val tree = requireNotNull(gitObject as? Tree) { "Object was not a tree." }
-        System.err.println("Name only: $nameOnly; Hash: $hash")
         print(
             if (nameOnly) {
                 tree.getPrintableStringNameOnly()

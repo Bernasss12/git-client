@@ -12,3 +12,8 @@ fun main(args: Array<String>) {
     parser.subcommands(Init, CatFile, HashObject, LsTree)
     parser.parse(args)
 }
+
+
+fun debug(string: String) {
+    System.err.println(string)
+}

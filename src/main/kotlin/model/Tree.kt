@@ -1,11 +1,11 @@
+@file:OptIn(ExperimentalStdlibApi::class)
+
 package model
 
 import api.Printable
+import debug
 import model.Tree.TreeEntry.Companion.hasNextTreeEntry
-import util.ByteArrayConsumer
-import util.NULL_BYTE
-import util.asString
-import util.buildByteArray
+import util.*
 import util.model.Hash
 
 class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArray) : GitObject() {
@@ -45,7 +45,6 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     }
 
     fun getPrintableStringNameOnly(): String = buildString {
-        System.err.println(entries.joinToString())
         getSortedChildren().forEach {
             append(it.path)
             append('\n')
@@ -53,8 +52,7 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     }
 
     private fun getSortedChildren(): List<TreeEntry> = entries.sortedWith(
-        compareBy<TreeEntry> { it.permission.mode }
-            .thenBy { it.path }
+        compareBy<TreeEntry> { it.path }
             .thenBy { it.gitObject?.getHash()?.toString() ?: "" }
     )
 
@@ -66,13 +64,14 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
 
         companion object {
             fun consumeBytes(consumer: ByteArrayConsumer): TreeEntry {
-                val (mode, path) = consumer.consumeUntil(NULL_BYTE).asString().split(' ', limit = 2)
-                val hash = Hash(consumer.consume(40).asString())
+                val (metaBytes, hashBytes) = consumer.consumeUntilAfter(20, NULL_BYTE).splitInTwo(NULL_BYTE)
+                val hash = Hash.fromByteArray(hashBytes)
+                val (mode, path) = metaBytes.asString().split(" ", limit = 2)
                 return TreeEntry(Permission.fromValue(mode.toInt()), path, hash)
             }
 
             fun ByteArrayConsumer.hasNextTreeEntry(): Boolean {
-                return hasAfter(40, NULL_BYTE)
+                return hasUntilAfter(20, NULL_BYTE)
             }
         }
 
@@ -98,7 +97,7 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
 
     enum class Permission(val value: Int, val mode: String) {
         TREE(40000, "040000"),
-        BLOB(100664, "100664"),
+        BLOB(100644, "100664"),
         BLOB_EXECUTABLE(100755, "100755"),
         BLOB_SYMLINK(120000, "120000"),
         COMMIT(160000, "160000");
