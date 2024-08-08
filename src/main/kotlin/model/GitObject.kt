@@ -1,11 +1,8 @@
 package model
 
 import api.Printable
-import util.asString
-import util.buildByteArray
-import util.consumeUntil
+import util.*
 import util.model.Hash
-import util.takeLastUntil
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Path
@@ -21,7 +18,7 @@ sealed class GitObject : Printable {
         }
 
         private fun splitHeaderAndContent(byteArray: ByteArray): Pair<ByteArray, ByteArray> {
-            return byteArray.consumeUntil { it == 0.toByte() } to byteArray.takeLastUntil { it == 0.toByte() }
+            return byteArray.splitInTwo(NULL_BYTE)
         }
 
         fun readFromFile(hash: Hash): GitObject? {
@@ -31,7 +28,7 @@ sealed class GitObject : Printable {
                 val bytes = it.readAllBytes()
                 val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
                 val (type, length) = headerBytes.asString().split(" ", limit = 2)
-                //check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
+                check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
                 System.err.println("Content doesn't have the size defined in header: ${contentBytes.size} != $length")
                 return when(type) {
                     Blob.TYPE -> Blob(contentBytes)

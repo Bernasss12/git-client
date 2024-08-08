@@ -37,15 +37,15 @@ fun buildByteArray(block: ByteArrayBuilder.() -> Unit): ByteArray {
 }
 
 
-fun ByteArray.split(char: Char): List<ByteArray> = this.split(char.code.toByte())
+fun ByteArray.split(char: Char): List<ByteArray> = this.split { it == char.code.toByte() }
 
-fun ByteArray.split(byte: Byte): List<ByteArray> {
+fun ByteArray.split(predicate: (Byte) -> Boolean): List<ByteArray> {
     val iterator = iterator()
     val list = mutableListOf<ByteArray>()
     var bytes = byteArrayOf()
     while (iterator.hasNext()) {
         val current = iterator.next()
-        if (current == byte) {
+        if (predicate(current)) {
             list.add(bytes.copyOf())
             bytes = byteArrayOf()
         } else {
@@ -53,4 +53,25 @@ fun ByteArray.split(byte: Byte): List<ByteArray> {
         }
     }
     return list.toList()
+}
+
+fun ByteArray.splitInTwo(separator: Byte) = splitInTwo { it == separator }
+fun ByteArray.splitInTwo(predicate: (Byte) -> Boolean): Pair<ByteArray, ByteArray> {
+    val iterator = iterator()
+    val first = ByteArrayBuilder()
+    val second = ByteArrayBuilder()
+    var triggered = false
+    while (iterator.hasNext()) {
+        val current = iterator.next()
+        if (!triggered && predicate(current)) {
+            triggered = true
+        } else {
+            if (triggered) {
+                second.appendByte(current)
+            } else {
+                first.appendByte(current)
+            }
+        }
+    }
+    return first.build() to second.build()
 }

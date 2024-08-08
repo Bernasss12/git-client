@@ -19,9 +19,8 @@ class ByteArrayConsumer(private var bytes: ByteArray) {
 
     private fun get(count: Int) = bytes.take(count).toByteArray()
     private fun erase(count: Int) {
-        bytes = bytes.drop(20).toByteArray()
+        bytes = bytes.drop(count).toByteArray()
     }
-
 
     fun hasAfter(lenght: Int, byte: Byte): Boolean {
         return bytes.indexOf(byte) + lenght >= bytes.size
