@@ -20,9 +20,9 @@ object LsTree : Subcommand("ls-tree", "List the contents of a tree object") {
         System.err.println("Name only: $nameOnly; Hash: $hash")
         print(
             if (nameOnly) {
-                tree.getPrintableString()
-            } else {
                 tree.getPrintableStringNameOnly()
+            } else {
+                tree.getPrintableString()
             }
         )
     }
