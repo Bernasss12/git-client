@@ -3,10 +3,10 @@
 package model
 
 import api.Printable
-import debug
 import model.Tree.TreeEntry.Companion.hasNextTreeEntry
 import util.*
 import util.model.Hash
+import java.io.File
 
 class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArray) : GitObject() {
 
@@ -29,6 +29,28 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
 
     companion object {
         const val TYPE = "tree"
+
+        fun fromDirectory(folder: File, write: Boolean): Tree {
+            check(folder.isDirectory) { "$folder is not a directory." }
+            return Tree(
+                folder.listFiles()?.map { file ->
+                    val gitObject = if (file.isDirectory) {
+                        fromDirectory(file, write)
+                    } else {
+                        Blob.fromFile(file)
+                    }
+
+                    return@map TreeEntry(
+                        permission = when (gitObject) {
+                            is Blob -> if (file.canExecute()) Permission.BLOB_EXECUTABLE else Permission.BLOB
+                            is Tree -> Permission.TREE
+                        },
+                        path = file.name,
+                        hash = gitObject.getHash()
+                    )
+                } ?: emptyList()
+            )
+        }
     }
 
     override fun getContent(): ByteArray = bytes
@@ -59,7 +81,7 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
     data class TreeEntry(val permission: Permission, val path: String, val hash: Hash) : Printable {
 
         val gitObject: GitObject? by lazy {
-            readFromFile(hash)
+            readFromObjectFile(hash)
         }
 
         companion object {

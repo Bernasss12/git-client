@@ -12,6 +12,7 @@ import java.util.zip.InflaterInputStream
 
 sealed class GitObject : Printable {
     companion object {
+        private val cache: MutableMap<Hash, GitObject> = mutableMapOf()
         private val ROOT: Path = Paths.get(".git", "objects")
         private fun getPath(hash: Hash): Path {
             return ROOT.resolve(Path.of(hash.take(2), hash.drop(2)))
@@ -21,18 +22,20 @@ sealed class GitObject : Printable {
             return byteArray.splitInTwo(NULL_BYTE)
         }
 
-        fun readFromFile(hash: Hash): GitObject? {
-            val file = getPath(hash).toFile()
-            if (!file.exists()) return null
-            InflaterInputStream(FileInputStream(file)).use {
-                val bytes = it.readAllBytes()
-                val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
-                val (type, length) = headerBytes.asString().split(" ", limit = 2)
-                check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
-                return when(type) {
-                    Blob.TYPE -> Blob(contentBytes)
-                    Tree.TYPE -> Tree(contentBytes)
-                    else -> throw IllegalStateException("[$type] is not an implemented git object type.")
+        fun readFromObjectFile(hash: Hash): GitObject {
+            return cache.computeIfAbsent(hash) {
+                val file = getPath(hash).toFile()
+                if (!file.exists()) throw NoSuchFileException(file)
+                InflaterInputStream(FileInputStream(file)).use {
+                    val bytes = it.readAllBytes()
+                    val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
+                    val (type, length) = headerBytes.asString().split(" ", limit = 2)
+                    check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
+                    return@computeIfAbsent when(type) {
+                        Blob.TYPE -> Blob(contentBytes)
+                        Tree.TYPE -> Tree(contentBytes)
+                        else -> throw IllegalStateException("[$type] is not an implemented git object type.")
+                    }
                 }
             }
         }

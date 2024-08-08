@@ -14,7 +14,7 @@ object CatFile : Subcommand("cat-file", "") {
 
     override fun execute() {
         val hash = Hash(hashString)
-        val obj = GitObject.readFromFile(hash) ?: return
+        val obj = GitObject.readFromObjectFile(hash) ?: return
         print(obj.getPrintableString())
     }
 }
