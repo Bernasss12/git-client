@@ -6,7 +6,7 @@ import util.*
 import util.model.Hash
 import java.io.File
 
-class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArray) : GitObject() {
+class Tree private constructor(private val entries: List<TreeEntry>, private val bytes: ByteArray) : GitObject() {
 
     constructor(entries: List<TreeEntry>) : this(
         entries = entries,
@@ -46,7 +46,7 @@ class Tree private constructor(val entries: List<TreeEntry>, val bytes: ByteArra
 
                     return@map TreeEntry(
                         permission = when (gitObject) {
-                            is Blob -> if (file.canExecute()) Permission.BLOB_EXECUTABLE else Permission.BLOB
+                            is Commit, is Blob -> if (file.canExecute()) Permission.BLOB_EXECUTABLE else Permission.BLOB
                             is Tree -> Permission.TREE
                         },
                         path = file.name,

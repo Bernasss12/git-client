@@ -19,6 +19,11 @@ class ByteArrayBuilder {
         appendByteArray(string.toByteArray())
     }
 
+    fun appendLine(string: String) {
+        appendString(string)
+        appendChar('\n')
+    }
+
     fun appendString(int: Int) {
         appendString(int.toString())
     }

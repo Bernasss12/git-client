@@ -22,6 +22,10 @@ sealed class GitObject : Printable {
             return byteArray.splitInTwo(NULL_BYTE)
         }
 
+        inline fun <reified T: GitObject> readFromObjectFile(hash: Hash): T {
+            return (readFromObjectFile(hash) as? T) ?: throw TypeCastException("$hash is not of type ${T::class.simpleName}")
+        }
+
         fun readFromObjectFile(hash: Hash): GitObject {
             return cache.computeIfAbsent(hash) {
                 val file = getPath(hash).toFile()

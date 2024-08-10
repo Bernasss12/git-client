@@ -10,9 +10,20 @@ import model.GitObject
 import model.Tree
 import util.model.Hash
 
-object LsTree : Subcommand("ls-tree", "List the contents of a tree object") {
-    private val nameOnly by option(ArgType.Boolean, fullName = "name-only", description = "List only filenames.").default(false)
-    private val hash by argument(ArgType.String, "file", "Hash object as if it were located at the given path.")
+object LsTree : Subcommand(
+    name = "ls-tree",
+    actionDescription = "List the contents of a tree object"
+) {
+    private val nameOnly by option(
+        type = ArgType.Boolean,
+        fullName = "name-only",
+        description = "List only filenames."
+    ).default(false)
+    private val hash by argument(
+        type = ArgType.String,
+        fullName = "file",
+        description = "Hash object as if it were located at the given path."
+    )
 
     override fun execute() {
         val gitObject = requireNotNull(GitObject.readFromObjectFile(Hash(hash))) { "Tree object not found: $hash" }

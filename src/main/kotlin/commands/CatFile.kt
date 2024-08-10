@@ -9,8 +9,16 @@ import kotlinx.cli.required
 import model.GitObject
 import util.model.Hash
 
-object CatFile : Subcommand("cat-file", "") {
-    val hashString by option(ArgType.String, "hash", "p", "Blob file hash").required()
+object CatFile : Subcommand(
+    name = "cat-file",
+    actionDescription = ""
+) {
+    val hashString by option(
+        type = ArgType.String,
+        fullName = "hash",
+        shortName = "p",
+        description = "Blob file hash"
+    ).required()
 
     override fun execute() {
         val hash = Hash(hashString)

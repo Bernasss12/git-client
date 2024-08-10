@@ -6,7 +6,7 @@ import kotlinx.cli.ExperimentalCli
 
 fun main(args: Array<String>) {
     val parser = ArgParser("example", strictSubcommandOptionsOrder = true)
-    parser.subcommands(Init, CatFile, HashObject, LsTree, WriteTree)
+    parser.subcommands(Init, CatFile, HashObject, LsTree, WriteTree, CommitTree)
     parser.parse(args)
 }
 

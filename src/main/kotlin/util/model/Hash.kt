@@ -2,6 +2,7 @@
 
 package util.model
 
+import kotlinx.cli.ArgType
 import java.security.MessageDigest
 
 @JvmInline
@@ -24,6 +25,15 @@ value class Hash(private val hash: String) {
             val digest = MessageDigest.getInstance("SHA-1")
             val hash = digest.digest(bytes)
             return fromByteArray(hash)
+        }
+    }
+
+    object HashType : ArgType<Hash>(true) {
+        override val description: kotlin.String
+            get() = "20byte hash value"
+
+        override fun convert(value: kotlin.String, name: kotlin.String): Hash {
+            return Hash(value)
         }
     }
 

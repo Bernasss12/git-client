@@ -10,8 +10,15 @@ import model.Blob
 import java.io.FileInputStream
 import java.nio.file.Path
 
-object HashObject : Subcommand("hash-object", "Compute object ID and optionally create an object from a file") {
-    private val write by option(ArgType.Boolean, shortName = "w", description = "Actually write the object into the object database.").default(false)
+object HashObject : Subcommand(
+    name = "hash-object",
+    actionDescription = "Compute object ID and optionally create an object from a file"
+) {
+    private val write by option(
+        type = ArgType.Boolean,
+        shortName = "w",
+        description = "Actually write the object into the object database."
+    ).default(false)
     private val fileString by argument(ArgType.String, "file", "Hash object as if it were located at the given path.")
 
     override fun execute() {
