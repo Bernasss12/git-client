@@ -5,7 +5,7 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ExperimentalCli
 
 fun main(args: Array<String>) {
-    val parser = ArgParser("example", strictSubcommandOptionsOrder = true)
+    val parser = ArgParser("git", strictSubcommandOptionsOrder = true)
     parser.subcommands(Init, CatFile, HashObject, LsTree, WriteTree, CommitTree)
     parser.parse(args)
 }

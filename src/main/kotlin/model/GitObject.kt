@@ -22,8 +22,8 @@ sealed class GitObject : Printable {
             return byteArray.splitInTwo(NULL_BYTE)
         }
 
-        inline fun <reified T: GitObject> readFromObjectFile(hash: Hash): T {
-            return (readFromObjectFile(hash) as? T) ?: throw TypeCastException("$hash is not of type ${T::class.simpleName}")
+        inline fun <reified T: GitObject> readTypedFromObjectFile(hash: Hash): T? {
+            return readFromObjectFile(hash) as? T
         }
 
         fun readFromObjectFile(hash: Hash): GitObject {
@@ -38,6 +38,7 @@ sealed class GitObject : Printable {
                     return@computeIfAbsent when(type) {
                         Blob.TYPE -> Blob(contentBytes)
                         Tree.TYPE -> Tree(contentBytes)
+                        Commit.TYPE -> Commit.fromBytes(contentBytes)
                         else -> throw IllegalStateException("[$type] is not an implemented git object type.")
                     }
                 }

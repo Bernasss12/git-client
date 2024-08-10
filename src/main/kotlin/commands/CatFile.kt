@@ -22,7 +22,7 @@ object CatFile : Subcommand(
 
     override fun execute() {
         val hash = Hash(hashString)
-        val obj = GitObject.readFromObjectFile(hash) ?: return
+        val obj = GitObject.readFromObjectFile(hash)
         print(obj.getPrintableString())
     }
 }

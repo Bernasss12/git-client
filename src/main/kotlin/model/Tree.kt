@@ -89,7 +89,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
     data class TreeEntry(val permission: Permission, val path: String, val hash: Hash) : Printable {
 
         val gitObject: GitObject? by lazy {
-            readFromObjectFile(hash)
+            readTypedFromObjectFile(hash)
         }
 
         companion object {
