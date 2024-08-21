@@ -1,20 +1,22 @@
 @file:OptIn(ExperimentalStdlibApi::class)
 
-package util.model
+package model.references
 
 import kotlinx.cli.ArgType
+import java.nio.file.Path
 import java.security.MessageDigest
+import kotlin.io.path.name
 
-@JvmInline
-value class Hash(private val hash: String) {
+class Hash(hash: String): Reference(hash) {
     init {
         require(hash.length == 40) { "[Hash.Constructor] Hash string length should be 40 characters long:\n[$hash] (${hash.length})" }
     }
 
-    fun take(n: Int) = hash.take(n)
-    fun drop(n: Int) = hash.drop(n)
-
     companion object {
+        fun fromPath(path: Path): Hash {
+            return Hash("${path.parent.name}${path.name}")
+        }
+
         fun fromByteArray(hash: ByteArray): Hash {
             require(hash.size == 20) { "Hash ByteArray should be 20 bytes long:\n[${hash.joinToString { it.toString() }}] (${hash.size})" }
             val stringHash = hash.toHexString()

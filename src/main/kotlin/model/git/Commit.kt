@@ -1,11 +1,11 @@
-package model
+package model.git
 
+import model.git.commit.Identity
+import model.git.commit.Parents
+import model.git.commit.Timestamp
+import model.references.Hash
 import util.asString
 import util.buildByteArray
-import util.model.Hash
-import util.model.Identity
-import util.model.Parents
-import util.model.Timestamp
 
 class Commit private constructor(
     private val tree: Hash,
@@ -15,7 +15,7 @@ class Commit private constructor(
     private val authoredTimestamp: Timestamp,
     private val commitedTimestamp: Timestamp,
     private val message: String,
-) : GitObject() {
+) : Object() {
 
     companion object {
         const val TYPE = "commit"

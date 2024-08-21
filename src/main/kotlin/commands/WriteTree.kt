@@ -4,7 +4,7 @@ package commands
 
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
-import model.Tree
+import model.git.Tree
 import java.nio.file.Paths
 
 object WriteTree : Subcommand(
@@ -14,6 +14,6 @@ object WriteTree : Subcommand(
     override fun execute() {
         val currentDirectory = Paths.get(".").toFile()
         val tree = Tree.fromDirectory(currentDirectory, true)
-        print(tree.getHash())
+        print(tree.hash)
     }
 }

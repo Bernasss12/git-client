@@ -1,4 +1,4 @@
-package util.model
+package model.git.commit
 
 import java.time.Instant
 import java.util.*

@@ -2,12 +2,13 @@
 
 package commands
 
+import Local
 import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
 import kotlinx.cli.required
-import model.Commit
-import util.model.Hash
+import model.git.Commit
+import model.references.Hash
 
 object CommitTree : Subcommand(
     name = "commit-tree",
@@ -34,8 +35,8 @@ object CommitTree : Subcommand(
             parent,
             message
         )
-        commit.writeToFile()
+        Local.writeObjectToDisk(commit)
 
-        println(commit.getHash())
+        println(commit.hash)
     }
 }

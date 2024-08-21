@@ -1,4 +1,4 @@
-package util.model
+package model.git.commit
 
 data class Identity(
     val name: String,

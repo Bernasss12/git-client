@@ -1,12 +1,12 @@
-package model
+package model.git
 
 import api.Printable
-import model.Tree.TreeEntry.Companion.hasNextTreeEntry
+import model.git.Tree.TreeEntry.Companion.hasNextTreeEntry
 import util.*
-import util.model.Hash
+import model.references.Hash
 import java.io.File
 
-class Tree private constructor(private val entries: List<TreeEntry>, private val bytes: ByteArray) : GitObject() {
+class Tree private constructor(private val entries: List<TreeEntry>, private val bytes: ByteArray) : Object() {
 
     constructor(entries: List<TreeEntry>) : this(
         entries = entries,
@@ -33,34 +33,35 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
         fun fromDirectory(folder: File, write: Boolean): Tree {
             check(folder.isDirectory) { "$folder is not a directory." }
             return Tree(
-                folder.listFiles()?.filter {
+                entries = folder.listFiles()?.filter {
                     it.name != ".git"
                 }?.map { file ->
                     val gitObject = if (file.isDirectory) {
                         fromDirectory(file, write)
                     } else {
                         Blob.fromFile(file)
-                    }.also {
-                        if (write) it.writeToFile()
+                    }.also { tree ->
+                        if (write) Local.writeObjectToDisk(tree)
                     }
 
+                    @Suppress("KotlinConstantConditions")
                     return@map TreeEntry(
                         permission = when (gitObject) {
                             is Commit, is Blob -> if (file.canExecute()) Permission.BLOB_EXECUTABLE else Permission.BLOB
                             is Tree -> Permission.TREE
                         },
                         path = file.name,
-                        hash = gitObject.getHash()
+                        hash = gitObject.hash
                     )
                 } ?: emptyList()
-            ).also {
-                if (write) it.writeToFile()
+            ).also { tree ->
+                if (write) Local.writeObjectToDisk(tree)
             }
         }
 
         fun getSorted(list: List<TreeEntry>) = list.sortedWith(
             compareBy<TreeEntry> { it.path }
-                .thenBy { it.gitObject?.getHash()?.toString() ?: "" }
+                .thenBy { it.gitObject?.hash?.toString() ?: "" }
         )
     }
 
@@ -88,8 +89,8 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
 
     data class TreeEntry(val permission: Permission, val path: String, val hash: Hash) : Printable {
 
-        val gitObject: GitObject? by lazy {
-            readTypedFromObjectFile(hash)
+        val gitObject: Object? by lazy {
+            Local.readObjectFromDisk(hash)
         }
 
         companion object {

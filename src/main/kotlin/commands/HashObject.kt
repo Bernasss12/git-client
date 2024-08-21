@@ -6,7 +6,7 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
 import kotlinx.cli.default
-import model.Blob
+import model.git.Blob
 import java.io.FileInputStream
 import java.nio.file.Path
 
@@ -30,8 +30,8 @@ object HashObject : Subcommand(
             Blob(it.readAllBytes())
         }
         if (write) {
-            blob.writeToFile()
+            Local.writeObjectToDisk(blob)
         }
-        println(blob.getHash())
+        println(blob.hash)
     }
 }

@@ -1,10 +1,10 @@
-package model
+package model.git
 
 import util.asString
 import java.io.File
 import java.io.FileInputStream
 
-class Blob(private val byteArray: ByteArray) : GitObject() {
+class Blob(private val byteArray: ByteArray) : Object() {
 
     companion object {
         const val TYPE = "blob"

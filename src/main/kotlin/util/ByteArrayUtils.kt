@@ -28,6 +28,11 @@ inline fun ByteArray.takeLastUntil(
     return array.reversedArray()
 }
 
+fun ByteArray.takeAsByteArray(count: Int) = take(count).toByteArray()
+fun ByteArray.takeLastAsByteArray(count: Int) = takeLast(count).toByteArray()
+fun ByteArray.dropAsByteArray(count: Int) = drop(count).toByteArray()
+fun ByteArray.dropLastAsByteArray(count: Int) = dropLast(count).toByteArray()
+
 fun ByteArray.asString(charset: Charset = Charsets.UTF_8) = String(this, charset)
 
 fun buildByteArray(block: ByteArrayBuilder.() -> Unit): ByteArray {
@@ -35,7 +40,6 @@ fun buildByteArray(block: ByteArrayBuilder.() -> Unit): ByteArray {
     block.invoke(bytes)
     return bytes.build()
 }
-
 
 fun ByteArray.split(char: Char): List<ByteArray> = this.split { it == char.code.toByte() }
 
@@ -74,4 +78,18 @@ fun ByteArray.splitInTwo(predicate: (Byte) -> Boolean): Pair<ByteArray, ByteArra
         }
     }
     return first.build() to second.build()
+}
+
+fun ByteArray.toInt(): Int {
+    require(this.size == 4) { "This method is supposed to turn a 4 byte array to an Int" }
+    return String(this).toInt(16)
+}
+
+fun ByteArray.toIntRaw(): Int {
+    require(this.size == 4) { "This method is supposed to turn a 4 byte array to an Int" }
+    var result = 0
+    for (byte in this) {
+        result = (result shl 8) or (byte.toInt() and 0xFF)
+    }
+    return result
 }

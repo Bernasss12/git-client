@@ -2,12 +2,12 @@
 
 package commands
 
+import Local
 import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
 import kotlinx.cli.required
-import model.GitObject
-import util.model.Hash
+import model.references.Reference
 
 object CatFile : Subcommand(
     name = "cat-file",
@@ -21,8 +21,8 @@ object CatFile : Subcommand(
     ).required()
 
     override fun execute() {
-        val hash = Hash(hashString)
-        val obj = GitObject.readFromObjectFile(hash)
+        val hash = Reference.of(hashString)
+        val obj = Local.readObjectFromDisk(hash)
         print(obj.getPrintableString())
     }
 }

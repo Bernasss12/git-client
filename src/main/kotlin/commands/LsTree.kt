@@ -2,13 +2,13 @@
 
 package commands
 
+import Local
 import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
 import kotlinx.cli.default
-import model.GitObject
-import model.Tree
-import util.model.Hash
+import model.git.Tree
+import model.references.Hash
 
 object LsTree : Subcommand(
     name = "ls-tree",
@@ -26,7 +26,7 @@ object LsTree : Subcommand(
     )
 
     override fun execute() {
-        val tree = requireNotNull(GitObject.readTypedFromObjectFile<Tree>(Hash(hash))) { "Tree object not found: $hash" }
+        val tree = requireNotNull(Local.readTypedObjectFromDisk<Tree>(Hash(hash))) { "Tree object not found: $hash" }
         print(
             if (nameOnly) {
                 tree.getPrintableStringNameOnly()
