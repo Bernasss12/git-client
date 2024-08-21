@@ -2,11 +2,12 @@ package model.git
 
 import api.Printable
 import model.git.Tree.TreeEntry.Companion.hasNextTreeEntry
+import model.git.tree.Type
 import util.*
 import model.references.Hash
 import java.io.File
 
-class Tree private constructor(private val entries: List<TreeEntry>, private val bytes: ByteArray) : Object() {
+class Tree private constructor(val entries: List<TreeEntry>, private val bytes: ByteArray) : Object() {
 
     constructor(entries: List<TreeEntry>) : this(
         entries = entries,
@@ -28,7 +29,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
     )
 
     companion object {
-        const val TYPE = "tree"
+        val TYPE = ObjectType.TREE
 
         fun fromDirectory(folder: File, write: Boolean): Tree {
             check(folder.isDirectory) { "$folder is not a directory." }
@@ -46,9 +47,9 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
 
                     @Suppress("KotlinConstantConditions")
                     return@map TreeEntry(
-                        permission = when (gitObject) {
-                            is Commit, is Blob -> if (file.canExecute()) Permission.BLOB_EXECUTABLE else Permission.BLOB
-                            is Tree -> Permission.TREE
+                        type = when (gitObject) {
+                            is Commit, is Blob -> if (file.canExecute()) Type.BLOB_EXECUTABLE else Type.BLOB
+                            is Tree -> Type.TREE
                         },
                         path = file.name,
                         hash = gitObject.hash
@@ -67,7 +68,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
 
     override fun getContent(): ByteArray = bytes
 
-    override fun getType(): String = TYPE
+    override fun getType(): ObjectType = TYPE
 
     override fun getLength(): Int = getContent().size
 
@@ -87,7 +88,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
 
     private fun getSortedEntries(): List<TreeEntry> = getSorted(entries)
 
-    data class TreeEntry(val permission: Permission, val path: String, val hash: Hash) : Printable {
+    data class TreeEntry(val type: Type, val path: String, val hash: Hash) : Printable {
 
         val gitObject: Object? by lazy {
             Local.readObjectFromDisk(hash)
@@ -98,7 +99,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
                 val (metaBytes, hashBytes) = consumer.consumeUntilAfter(20, NULL_BYTE).splitInTwo(NULL_BYTE)
                 val hash = Hash.fromByteArray(hashBytes)
                 val (mode, path) = metaBytes.asString().split(" ", limit = 2)
-                return TreeEntry(Permission.fromValue(mode.toInt()), path, hash)
+                return TreeEntry(Type.fromValue(mode.toInt()), path, hash)
             }
 
             fun ByteArrayConsumer.hasNextTreeEntry(): Boolean {
@@ -108,7 +109,7 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
 
         override fun getPrintableString(): String {
             return buildString {
-                append(permission.mode)
+                append(type.mode)
                 append(" ")
                 append(gitObject?.getType() ?: "")
                 append(hash)
@@ -118,25 +119,11 @@ class Tree private constructor(private val entries: List<TreeEntry>, private val
         }
 
         fun toBytes(): ByteArray = buildByteArray {
-            appendString(permission.value)
+            appendString(type.value)
             appendSpace()
             appendString(path)
             appendNull()
             appendByteArray(hash.toBytes())
-        }
-    }
-
-    enum class Permission(val value: Int, val mode: String) {
-        TREE(40000, "040000"),
-        BLOB(100644, "100664"),
-        BLOB_EXECUTABLE(100755, "100755"),
-        BLOB_SYMLINK(120000, "120000"),
-        COMMIT(160000, "160000");
-
-        companion object {
-            fun fromValue(value: Int): Permission {
-                return entries.firstOrNull { it.value == value } ?: throw IllegalArgumentException("$value: is not a valid Permission value.")
-            }
         }
     }
 }

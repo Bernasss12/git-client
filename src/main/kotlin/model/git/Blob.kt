@@ -7,7 +7,7 @@ import java.io.FileInputStream
 class Blob(private val byteArray: ByteArray) : Object() {
 
     companion object {
-        const val TYPE = "blob"
+        val TYPE = ObjectType.BLOB
 
         fun fromFile(file: File): Blob {
             FileInputStream(file).use {
@@ -20,7 +20,7 @@ class Blob(private val byteArray: ByteArray) : Object() {
         return byteArray
     }
 
-    override fun getType(): String = TYPE
+    override fun getType(): ObjectType = TYPE
     override fun getLength(): Int = byteArray.size
     override fun getPrintableString(): String = byteArray.asString()
 

@@ -8,7 +8,7 @@ import util.asString
 import util.buildByteArray
 
 class Commit private constructor(
-    private val tree: Hash,
+    val tree: Hash,
     private val parents: Parents,
     private val author: Identity,
     private val commiter: Identity,
@@ -18,7 +18,7 @@ class Commit private constructor(
 ) : Object() {
 
     companion object {
-        const val TYPE = "commit"
+        val TYPE = ObjectType.COMMIT
 
         fun new(
             tree: Hash,
@@ -86,7 +86,7 @@ class Commit private constructor(
         appendLine(message)
     }
 
-    override fun getType(): String = TYPE
+    override fun getType(): ObjectType = TYPE
 
     override fun getLength(): Int = getContent().size
 

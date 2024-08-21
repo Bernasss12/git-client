@@ -1,8 +1,7 @@
 import exception.ObjectNotFoundException
-import model.git.Blob
-import model.git.Commit
-import model.git.Object
-import model.git.Tree
+import model.GitObjectHolder
+import model.git.*
+import model.git.tree.Type
 import model.references.Hash
 import model.references.PartialHash
 import model.references.Reference
@@ -19,10 +18,13 @@ import java.util.zip.InflaterInputStream
 import kotlin.io.path.listDirectoryEntries
 
 object Local {
-    val GIT_FOLDER: File = File(".git")
-    val GIT_OBJECTS_FOLDER: File = GIT_FOLDER + "objects"
-    val GIT_REFS_FOLDER: File = GIT_FOLDER + "refs"
-    val GIT_HEAD_FILE: File = GIT_FOLDER + "HEAD"
+    private val FOLDER: File = File(".").normalize()
+    private val GIT_FOLDER: File = FOLDER + ".git"
+    private val GIT_OBJECTS_FOLDER: File = GIT_FOLDER + "objects"
+    private val GIT_REFS_FOLDER: File = GIT_FOLDER + "refs"
+    private val GIT_HEAD_FILE: File = GIT_FOLDER + "HEAD"
+
+    private const val ROOT_TREE_NAME = ""
 
     private val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
 
@@ -34,13 +36,45 @@ object Local {
         check(GIT_HEAD_FILE.exists())
     }
 
+    fun writeTreeToDisk(baseTree: Tree) {
+        writeTreeToDisk(FOLDER, baseTree, "")
+    }
+
+    private fun writeTreeToDisk(parent: File, tree: Tree, name: String) {
+        if (true /*parent.createDirectoryAndParents()*/) {
+            tree.entries.forEach { treeEntry ->
+                val gitObject = treeEntry.gitObject
+                when (gitObject) {
+                    is Tree -> writeTreeToDisk(parent = parent + name, tree = gitObject, name = treeEntry.path)
+                    is Blob -> writeFileToDisk(parent = parent, gitObject = gitObject, name = treeEntry.path, type = treeEntry.type)
+                    else -> throw IllegalStateException("There shouldn't be any tree entries that aren't other trees or blobs.")
+                }
+            }
+        }
+    }
+
+    private fun writeFileToDisk(parent: File, gitObject: Blob, name: String, type: Type) {
+        if (parent.exists()) {
+            val blobFile = parent + name
+            println("Writing: ${blobFile.relativeTo(FOLDER).path}")
+//            blobFile.writeBytes(gitObject.getContent())
+//            blobFile.setExecutable(type.executable)
+        }
+    }
+
+    fun writeObjectHolderToDisk(gitObjectHolder: GitObjectHolder) {
+        writeObjectToDisk(Object.fromBytes(gitObjectHolder.type, gitObjectHolder.bytes))
+    }
+
     fun writeObjectToDisk(gitObject: Object) {
-        val file = GIT_OBJECTS_FOLDER + gitObject.hash.hash
+        val file = GIT_OBJECTS_FOLDER + gitObject.hash.toFile()
         if (file.exists()) return
         if (!file.createParentDirectories()) {
             System.err.println("Failed to create parent file: ${file.parentFile}")
             return
         }
+
+        gitObjectCache.putIfAbsent(gitObject.hash, gitObject)
 
         DeflaterOutputStream(FileOutputStream(file)).use { stream ->
             stream.write(gitObject.getHeaderAndContent())
@@ -66,19 +100,14 @@ object Local {
         }
 
         return gitObjectCache.computeIfAbsent(hash) {
-            val file = hash.toFile()
+            val file = GIT_OBJECTS_FOLDER + hash.toFile()
             if (!file.exists()) throw NoSuchFileException(file)
             InflaterInputStream(FileInputStream(file)).use {
                 val bytes = it.readAllBytes()
                 val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
                 val (type, length) = headerBytes.asString().split(" ", limit = 2)
                 check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
-                return@computeIfAbsent when (type) {
-                    Blob.TYPE -> Blob(contentBytes)
-                    Tree.TYPE -> Tree(contentBytes)
-                    Commit.TYPE -> Commit.fromBytes(contentBytes)
-                    else -> throw IllegalStateException("[$type] is not an implemented git object type.")
-                }
+                return@computeIfAbsent Object.fromBytes(ObjectType.valueOf(type.uppercase()), contentBytes)
             }
         }
     }
@@ -95,6 +124,7 @@ object Local {
 
     private fun Reference.toFile(): File = Paths.get(take(2), drop(2)).toFile()
 
+    private operator fun File.plus(other: File): File = resolve(other)
     private operator fun File.plus(other: Path): Path = toPath().resolve(other)
     private operator fun File.plus(other: String): File = resolve(other)
 
