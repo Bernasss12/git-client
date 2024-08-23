@@ -69,8 +69,11 @@ object Local {
     fun writeReferencesToDisk(references: List<ReferenceLine>) {
         val total = references.size
         references.forEachIndexed { index, reference ->
-            printProgressbar(index, total, 100, "Writing references...")
-            (GIT_REFS_FOLDER + reference.name).writeText(reference.hash.hash)
+            val file = (GIT_REFS_FOLDER + reference.name)
+            if (file.createParentDirectories()) {
+                printProgressbar(index, total, 100, "Writing references...")
+                file.writeText(reference.hash.hash)
+            }
         }
     }
 
