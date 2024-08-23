@@ -4,72 +4,56 @@ package commands
 
 import Local
 import Remote
+import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand
+import kotlinx.cli.optional
 import kotlinx.coroutines.runBlocking
-import model.DeltaObjectHolder
-import model.GitObjectHolder
 import model.git.Commit
 import model.git.Tree
 import model.references.Hash
-import kotlin.math.roundToInt
+import java.nio.file.Path
 
 object Clone : Subcommand("clone", "Clone remote repository") {
+
+    private val remote by argument(
+        type = ArgType.String,
+        fullName = "remote-url",
+        description = "Remote repository that will be clone"
+    )
+    private val directory by argument(
+        type = ArgType.String,
+        fullName = "directory",
+        description = "Directory where the new repository will be cloned into"
+    ).optional()
+
     override fun execute() {
-        /*
-            1) Send GET /<repository-name>/info/refs?service=git-upload-pack
-            2) Parse response
-            3) Send POST /<repository-name>/git-upload-pack
-                Headers: - Content-Type: application/x-git-upload-pack-request
-                         - Accept: application/x-git-upload-pack-result
-                Body:
-                     0000want <object-id> <capabilities>
-                     00000009done
-            4) Parse response (pack-file)
-            5) Initialize local git repository
-            6) Populate local git repository with pack-file information.
-                6a) Write all objects to .git/objects
-                6b) Write all references according to initial GET request result.
-            7) Write all files defined by the head-tree
+        val references = runBlocking { Remote.fetchReferences(remote) }
+        val holders = runBlocking { Remote.fetchPackFile(remote, references) }
 
-        */
-
-        val bytes = runBlocking {
-            val remote = "https://github.com/Bernasss12/BetterEnchantedBooks"
-            val references = Remote.fetchReferences(remote)
-            val objects = Remote.fetchPackFile(remote, references)
-
-            val headRef: Hash = references.find { it.name == "HEAD" }!!.hash
-            val ref: String = headRef.let { headHash ->
-                references.find { it.hash == headHash }?.name ?: headHash.hash
-            }
-
-            Local.writeGitDirectory(ref)
-
-            objects.forEachIndexed { index, holder ->
-                val barWidth = 45
-                print(
-                    "\r[${"#".repeat(((index.toDouble() / objects.size) * barWidth).roundToInt()).padEnd(barWidth)}][${
-                        (index + 1).toString().padStart(objects.size.toString().length)
-                    }/${objects.size}] Writing git objects..."
-                )
-                when (holder) {
-                    is DeltaObjectHolder -> Unit // TODO implement later
-                    is GitObjectHolder -> Local.writeObjectHolderToDisk(holder)
-                }
-            }
-            println()
-
-            val result = Local.gitObjectCache.filter { it.value.getPrintableString().contains("c1cd75cb7e4a50744599dab60a170e00edd58bbf") }
-
-            val commit = Local.readTypedObjectFromDiskByReference<Commit>(headRef)
-            checkNotNull(commit) { "Could not find commit: $headRef" }
-            val tree = Local.readTypedObjectFromDiskByReference<Tree>(commit.tree)
-            checkNotNull(tree) { "Could not find tree: ${commit.tree}" }
-            Local.writeTreeToDisk(tree)
-
-            println(objects)
+        // Find hash value of HEAD in references
+        val headRef: Hash = references.find { it.name == "HEAD" }!!.hash
+        // Find reference path for current HEAD
+        val ref: String = headRef.let { headHash ->
+            references.find { it.hash == headHash }?.name ?: headHash.hash
         }
+
+        // Initializes the local git repository with the defined head ref
+        Local.writeGitDirectory(ref)
+
+        // Write all received objects to the object storage in .git/objects
+        Local.writeObjectsToDisk(holders)
+
+        // Find HEAD commit (HEAD ref)
+        val commit = Local.readTypedObjectFromDiskByReference<Commit>(headRef)
+        checkNotNull(commit) { "Could not find commit: $headRef" }
+
+        // Find tree for HEAD commit
+        val tree = Local.readTypedObjectFromDiskByReference<Tree>(commit.tree)
+        checkNotNull(tree) { "Could not find tree: ${commit.tree}" }
+
+        // Write the current tree files
+        Local.writeTreeToDisk(Path.of(directory ?: "."), tree)
     }
 }
 

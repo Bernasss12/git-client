@@ -122,3 +122,7 @@ fun printByteArrayComparison(expected: ByteArray, check: ByteArray) {
     println(after)
     println(below)
 }
+
+inline fun <T, R> T.then(block: (T) -> R): R {
+    return block(this)
+}

@@ -19,7 +19,11 @@ object HashObject : Subcommand(
         shortName = "w",
         description = "Actually write the object into the object database."
     ).default(false)
-    private val fileString by argument(ArgType.String, "file", "Hash object as if it were located at the given path.")
+    private val fileString by argument(
+        type = ArgType.String,
+        fullName = "file",
+        description = "Hash object as if it were located at the given path."
+    )
 
     override fun execute() {
         val file = Path.of(fileString).toFile()
