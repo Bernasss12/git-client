@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package util
 
 import java.nio.charset.Charset
@@ -92,4 +94,10 @@ fun ByteArray.toIntRaw(): Int {
         result = (result shl 8) or (byte.toInt() and 0xFF)
     }
     return result
+}
+
+fun ByteArray.pad(length: Int, byte: Byte): ByteArray {
+    if (size >= length) return this
+    val missing = ByteArray(length - size) { byte }
+    return this + missing
 }

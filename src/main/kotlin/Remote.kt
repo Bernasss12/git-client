@@ -11,10 +11,7 @@ import model.ObjectHolder
 import model.git.ObjectType
 import model.git.ObjectType.*
 import model.references.Hash
-import util.ByteArrayConsumer
-import util.asString
-import util.toInt
-import util.toIntRaw
+import util.*
 import java.nio.charset.StandardCharsets
 import kotlin.math.roundToInt
 
@@ -177,7 +174,7 @@ object Remote {
                         .trim()
                         .split(' ', limit = 2)
                         .map {
-                            it.split('\u0000', limit = 2)
+                            it.split(NULL_CHAR, limit = 2)
                         }
                         .flatten()
                     add(

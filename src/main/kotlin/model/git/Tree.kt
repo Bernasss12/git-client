@@ -91,7 +91,7 @@ class Tree private constructor(val entries: List<TreeEntry>, private val bytes: 
     data class TreeEntry(val type: Type, val path: String, val hash: Hash) : Printable {
 
         val gitObject: Object? by lazy {
-            Local.readObjectFromDisk(hash)
+            Local.readObjectFromDiskByReference(hash)
         }
 
         companion object {

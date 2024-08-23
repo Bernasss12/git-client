@@ -1,6 +1,9 @@
 import exception.ObjectNotFoundException
 import model.GitObjectHolder
-import model.git.*
+import model.git.Blob
+import model.git.Object
+import model.git.ObjectType
+import model.git.Tree
 import model.git.tree.Type
 import model.references.Hash
 import model.references.PartialHash
@@ -26,7 +29,7 @@ object Local {
 
     private const val ROOT_TREE_NAME = ""
 
-    private val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
+    /*private*/ val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
 
     fun writeGitDirectory(headReference: String) {
         check(GIT_FOLDER.createDirectoryAndParents())
@@ -37,7 +40,7 @@ object Local {
     }
 
     fun writeTreeToDisk(baseTree: Tree) {
-        writeTreeToDisk(FOLDER, baseTree, "")
+        writeTreeToDisk(FOLDER, baseTree, ROOT_TREE_NAME)
     }
 
     private fun writeTreeToDisk(parent: File, tree: Tree, name: String) {
@@ -68,47 +71,51 @@ object Local {
 
     fun writeObjectToDisk(gitObject: Object) {
         val file = GIT_OBJECTS_FOLDER + gitObject.hash.toFile()
+
+        gitObjectCache.putIfAbsent(gitObject.hash, gitObject)
         if (file.exists()) return
         if (!file.createParentDirectories()) {
             System.err.println("Failed to create parent file: ${file.parentFile}")
             return
         }
 
-        gitObjectCache.putIfAbsent(gitObject.hash, gitObject)
-
         DeflaterOutputStream(FileOutputStream(file)).use { stream ->
             stream.write(gitObject.getHeaderAndContent())
         }
     }
 
-    inline fun <reified T : Object> readTypedObjectFromDisk(hash: Reference): T? {
-        return readObjectFromDisk(hash) as? T
+    inline fun <reified T : Object> readTypedObjectFromDiskByReference(hash: Reference): T? {
+        return readObjectFromDiskByReference(hash) as? T
     }
 
-    fun readObjectFromDisk(reference: Reference): Object {
+    fun readObjectFromDiskByReference(reference: Reference): Object {
         val hash: Hash = when (reference) {
             is Hash -> reference
             is PartialHash -> findHashFromPartialHash(reference)
         }
 
-        return readObjectFromDisk(hash)
+        return gitObjectCache.computeIfAbsent(hash) {
+            readObjectFromDiskByFile(GIT_OBJECTS_FOLDER + hash.toFile())
+        }
     }
 
-    private fun readObjectFromDisk(hash: Hash): Object {
+    inline fun <reified T : Object> readTypedObjectFromDiskByFile(file: File): T? {
+        return readObjectFromDiskByFile(file) as? T
+    }
+
+    fun readObjectFromDiskByFile(file: File): Object {
         fun splitHeaderAndContent(byteArray: ByteArray): Pair<ByteArray, ByteArray> {
             return byteArray.splitInTwo(NULL_BYTE)
         }
 
-        return gitObjectCache.computeIfAbsent(hash) {
-            val file = GIT_OBJECTS_FOLDER + hash.toFile()
-            if (!file.exists()) throw NoSuchFileException(file)
-            InflaterInputStream(FileInputStream(file)).use {
-                val bytes = it.readAllBytes()
-                val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
-                val (type, length) = headerBytes.asString().split(" ", limit = 2)
-                check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
-                return@computeIfAbsent Object.fromBytes(ObjectType.valueOf(type.uppercase()), contentBytes)
-            }
+        if (!file.exists()) throw NoSuchFileException(file)
+
+        InflaterInputStream(FileInputStream(file)).use {
+            val bytes = it.readAllBytes()
+            val (headerBytes, contentBytes) = splitHeaderAndContent(bytes)
+            val (type, length) = headerBytes.asString().split(" ", limit = 2)
+            check(contentBytes.size == length.toInt()) { "Content doesn't have the size defined in header: ${contentBytes.size} != $length" }
+            return Object.fromBytes(ObjectType.valueOf(type.uppercase()), contentBytes)
         }
     }
 
@@ -128,7 +135,7 @@ object Local {
     private operator fun File.plus(other: Path): Path = toPath().resolve(other)
     private operator fun File.plus(other: String): File = resolve(other)
 
-    private fun File.listDirectoryEntries(glob: String): List<Path> = toPath().listDirectoryEntries()
+    private fun File.listDirectoryEntries(glob: String): List<Path> = toPath().listDirectoryEntries(glob)
     private fun File.createParentDirectories(): Boolean = parentFile.mkdirs() || parentFile.exists()
     private fun File.createDirectoryAndParents(): Boolean = mkdirs() || exists()
     private fun File.notExists(): Boolean = !exists()

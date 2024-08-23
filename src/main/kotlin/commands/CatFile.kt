@@ -22,7 +22,7 @@ object CatFile : Subcommand(
 
     override fun execute() {
         val hash = Reference.of(hashString)
-        val obj = Local.readObjectFromDisk(hash)
+        val obj = Local.readObjectFromDiskByReference(hash)
         print(obj.getPrintableString())
     }
 }

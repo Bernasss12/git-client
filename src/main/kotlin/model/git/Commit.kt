@@ -6,6 +6,7 @@ import model.git.commit.Timestamp
 import model.references.Hash
 import util.asString
 import util.buildByteArray
+import util.split
 
 class Commit private constructor(
     val tree: Hash,
@@ -40,8 +41,8 @@ class Commit private constructor(
         }
 
         fun fromBytes(bytes: ByteArray): Commit {
-            val (meta, message) = bytes.asString().split("\n\n")
-            val lines = meta.split("\n").map { line -> line.split(" ", limit = 2).let { it[0] to it[1] } }
+            val (meta, message) = bytes.asString().split("\n").split { it.isEmpty() }
+            val lines = meta.map { line -> line.split(" ", limit = 2).let { it[0] to it[1] } }
             val tree = lines["tree"]?.let { Hash(it) } ?: throw IllegalStateException("Tree is required in commit")
             val parents = Parents(
                 lines["parent"]?.let { Hash(it) },
@@ -57,7 +58,7 @@ class Commit private constructor(
                 commiter = committer,
                 authoredTimestamp = authoringTime,
                 commitedTimestamp = committingTime,
-                message = message,
+                message = message.joinToString("\n"),
             )
         }
 
@@ -72,25 +73,26 @@ class Commit private constructor(
         }
 
         private fun List<Pair<String, String>>.getLastIfMultiple(key: String): String? {
-            return takeIf { it.count { it.first == "parent" } > 1 }?.findLast { it.first == "parent" }?.second
+            return takeIf { it.count { it.first == key } > 1 }?.findLast { it.first == key }?.second
         }
     }
 
     override fun getContent(): ByteArray = buildByteArray {
         appendLine("tree $tree")
-        parents.primary?.let { appendLine("parent $it") }
-        parents.secondary?.let { appendLine("parent $it") }
+        parents.primary?.let { appendLine("parent ${it.hash}") }
+        parents.secondary?.let { appendLine("parent ${it.hash}") }
         appendLine("author ${author.toIdentityString()} ${authoredTimestamp.toTimestampString()}")
         appendLine("committer ${commiter.toIdentityString()} ${commitedTimestamp.toTimestampString()}")
         appendChar('\n')
-        appendLine(message)
+        appendString(message)
     }
 
     override fun getType(): ObjectType = TYPE
 
     override fun getLength(): Int = getContent().size
 
-    override fun getPrintableString(): String {
-        TODO("Not yet implemented")
+    override fun getPrintableString(): String = buildString {
+        appendLine("tree ${tree.hash}")
+        parents.primary?.let { appendLine("parent ${it.hash}") }
     }
 }

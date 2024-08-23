@@ -26,7 +26,7 @@ object LsTree : Subcommand(
     )
 
     override fun execute() {
-        val tree = requireNotNull(Local.readTypedObjectFromDisk<Tree>(Hash(hash))) { "Tree object not found: $hash" }
+        val tree = requireNotNull(Local.readTypedObjectFromDiskByReference<Tree>(Hash(hash))) { "Tree object not found: $hash" }
         print(
             if (nameOnly) {
                 tree.getPrintableStringNameOnly()

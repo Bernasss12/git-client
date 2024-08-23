@@ -18,6 +18,7 @@ sealed class Object : Printable {
                 else -> { throw IllegalArgumentException("$type is not a type that is supported to be written") }
             }
         }
+
     }
 
     abstract fun getContent(): ByteArray

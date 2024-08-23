@@ -60,13 +60,15 @@ object Clone : Subcommand("clone", "Clone remote repository") {
             }
             println()
 
-            val commit = Local.readTypedObjectFromDisk<Commit>(headRef)
+            val result = Local.gitObjectCache.filter { it.value.getPrintableString().contains("c1cd75cb7e4a50744599dab60a170e00edd58bbf") }
+
+            val commit = Local.readTypedObjectFromDiskByReference<Commit>(headRef)
             checkNotNull(commit) { "Could not find commit: $headRef" }
-            val tree = Local.readTypedObjectFromDisk<Tree>(commit.tree)
+            val tree = Local.readTypedObjectFromDiskByReference<Tree>(commit.tree)
             checkNotNull(tree) { "Could not find tree: ${commit.tree}" }
             Local.writeTreeToDisk(tree)
 
-
+            println(objects)
         }
     }
 }
