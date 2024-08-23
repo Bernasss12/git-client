@@ -8,12 +8,12 @@ import io.ktor.http.*
 import model.DeltaObjectHolder
 import model.GitObjectHolder
 import model.ObjectHolder
+import model.ReferenceLine
 import model.git.ObjectType
 import model.git.ObjectType.*
 import model.references.Hash
 import util.*
 import java.nio.charset.StandardCharsets
-import kotlin.math.roundToInt
 
 object Remote {
     val HTTP_CLIENT = HttpClient(CIO)
@@ -77,12 +77,9 @@ object Remote {
             repeat(objectCount) { index ->
 
                 val (size, type) = consumer.parseSizeAndType()
-                val barWidth = 45
-                print(
-                    "\r[${"#".repeat(((index.toDouble() / objectCount) * barWidth).roundToInt()).padEnd(barWidth)}][${
-                        (index + 1).toString().padStart(objectCount.toString().length)
-                    }/$objectCount] Parsing downloaded objects..."
-                )
+
+                printProgressbar(index, objectCount, 100, "Parsing downloaded objects...")
+
                 when (type) {
                     COMMIT, TREE, BLOB -> {
                         val objectBytes = consumer.consumeNextCompressed()
@@ -99,7 +96,6 @@ object Remote {
                     }
                 }
             }
-            println()
         }
     }
 
@@ -148,8 +144,6 @@ object Remote {
 
         return size to ObjectType.fromValue(typeValue)
     }
-
-    data class ReferenceLine(val hash: Hash, val name: String, val capabilities: List<String>)
 
     private fun ByteArrayConsumer.consumeRefsPckLines(): List<ReferenceLine> = buildList {
         val lengthSize = 4

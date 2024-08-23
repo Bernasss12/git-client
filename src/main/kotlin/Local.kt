@@ -2,6 +2,7 @@ import exception.ObjectNotFoundException
 import model.DeltaObjectHolder
 import model.GitObjectHolder
 import model.ObjectHolder
+import model.ReferenceLine
 import model.git.Blob
 import model.git.Object
 import model.git.ObjectType
@@ -10,10 +11,7 @@ import model.git.tree.Type
 import model.references.Hash
 import model.references.PartialHash
 import model.references.Reference
-import util.NULL_BYTE
-import util.asString
-import util.splitInTwo
-import util.then
+import util.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -24,7 +22,6 @@ import java.util.zip.InflaterInputStream
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.listDirectoryEntries
-import kotlin.math.roundToInt
 
 object Local {
     private val FOLDER: File = File("").normalize()
@@ -52,8 +49,7 @@ object Local {
     private fun writeTreeToDisk(parent: Path, tree: Tree, name: String) {
         if (parent.createDirectoryAndParents()) {
             tree.entries.forEach { treeEntry ->
-                val gitObject = treeEntry.gitObject
-                when (gitObject) {
+                when (val gitObject = treeEntry.gitObject) {
                     is Tree -> writeTreeToDisk(parent = parent + name, tree = gitObject, name = treeEntry.path)
                     is Blob -> writeFileToDisk(parent = parent, gitObject = gitObject, name = treeEntry.path, type = treeEntry.type)
                     else -> throw IllegalStateException("There shouldn't be any tree entries that aren't other trees or blobs.")
@@ -65,23 +61,25 @@ object Local {
     private fun writeFileToDisk(parent: Path, gitObject: Blob, name: String, type: Type) {
         if (parent.exists()) {
             val blobFile = (parent + name).toFile()
-            println("Writing: ${blobFile.relativeTo(FOLDER).path}")
             blobFile.writeBytes(gitObject.getContent())
             blobFile.setExecutable(type.executable)
         }
     }
 
+    fun writeReferencesToDisk(references: List<ReferenceLine>) {
+        val total = references.size
+        references.forEachIndexed { index, reference ->
+            printProgressbar(index, total, 100, "Writing references...")
+            (GIT_REFS_FOLDER + reference.name).writeText(reference.hash.hash)
+        }
+    }
+
     fun writeObjectsToDisk(holders: List<ObjectHolder>) {
         holders.forEachIndexed { index, holder ->
-            val barWidth = 45
-            print(
-                "\r[${"#".repeat(((index.toDouble() / holders.size) * barWidth).roundToInt()).padEnd(barWidth)}][${
-                    (index + 1).toString().padStart(holders.size.toString().length)
-                }/${holders.size}] Writing git objects..."
-            )
+            printProgressbar(index, holders.size, 100, "Writing objects...")
             when (holder) {
                 is DeltaObjectHolder -> Unit // TODO implement later
-                is GitObjectHolder -> Local.writeObjectHolderToDisk(holder)
+                is GitObjectHolder -> writeObjectHolderToDisk(holder)
             }
         }
     }
@@ -149,20 +147,19 @@ object Local {
             ?.let { Hash.fromPath(it) }
             ?: throw ObjectNotFoundException("No objects matching partial hash ${partialHash.hash} were found.")
     }
-
     private fun Reference.toFile(): File = Paths.get(take(2), drop(2)).toFile()
     private operator fun File.plus(other: File): File = resolve(other)
-    private operator fun File.plus(other: Path): Path = toPath().resolve(other)
 
+    private operator fun File.plus(other: Path): Path = toPath().resolve(other)
     private operator fun File.plus(other: String): File = resolve(other)
     private fun File.listDirectoryEntries(glob: String): List<Path> = toPath().listDirectoryEntries(glob)
     private fun File.createParentDirectories(): Boolean = parentFile.mkdirs() || parentFile.exists()
-    private fun File.createDirectoryAndParents(): Boolean = mkdirs().then { exists() }
 
+    private fun File.createDirectoryAndParents(): Boolean = mkdirs().then { exists() }
     private fun File.notExists(): Boolean = !exists()
     private operator fun Path.plus(other: Path): Path = resolve(other)
-    private operator fun Path.plus(other: File): Path = resolve(other.toPath())
 
+    private operator fun Path.plus(other: File): Path = resolve(other.toPath())
     private operator fun Path.plus(other: String): Path = resolve(other)
     private fun Path.createDirectoryAndParents(): Boolean = createDirectories().exists()
 }

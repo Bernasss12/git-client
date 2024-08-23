@@ -41,6 +41,9 @@ object Clone : Subcommand("clone", "Clone remote repository") {
         // Initializes the local git repository with the defined head ref
         Local.writeGitDirectory(ref)
 
+        // Write all references inside git directory
+        Local.writeReferencesToDisk(references)
+
         // Write all received objects to the object storage in .git/objects
         Local.writeObjectsToDisk(holders)
 

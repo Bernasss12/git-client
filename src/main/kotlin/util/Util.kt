@@ -6,6 +6,7 @@ package util
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 val RESET = "\u001B[0m"
 val BLACK = "\u001B[30m"
@@ -121,6 +122,20 @@ fun printByteArrayComparison(expected: ByteArray, check: ByteArray) {
     println(third)
     println(after)
     println(below)
+}
+
+fun printProgressbar(index: Int, total: Int, width: Int, message: String) {
+    val current = index + 1
+    val totalLenght = total.toString().length
+    val counter = "[${current.toString().padStart(totalLenght)}/$total]"
+
+    // Remove brackets and counter from size
+    val barWidth = width - 2 - counter.length
+    val bar = "[" + "#".repeat(((current / total.toDouble()) * barWidth).roundToInt()).padEnd(barWidth) + "]"
+    val line = "$bar$counter"
+    print("\r$line $message")
+    if(current == total)
+        println()
 }
 
 inline fun <T, R> T.then(block: (T) -> R): R {
