@@ -85,6 +85,7 @@ class Commit private constructor(
         appendLine("committer ${commiter.toIdentityString()} ${commitedTimestamp.toTimestampString()}")
         appendChar('\n')
         appendString(message)
+        appendChar('\n')
     }
 
     override fun getType(): ObjectType = TYPE

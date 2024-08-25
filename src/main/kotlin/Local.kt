@@ -37,8 +37,6 @@ object Local {
     private val GIT_HEAD_FILE: File
         get() = GIT_FOLDER.toFile() + "HEAD"
 
-    private val ROOT_TREE_NAME = ""
-
     private val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
 
     fun writeGitDirectory(headReference: String) {
