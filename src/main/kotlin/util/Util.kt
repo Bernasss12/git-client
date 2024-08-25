@@ -138,6 +138,22 @@ fun printProgressbar(index: Int, total: Int, width: Int, message: String) {
         println()
 }
 
+inline fun <reified A, reified B> Iterable<Any>.partitionByType(): Pair<List<A>, List<B>> =
+    filterIsInstance<A>() to filterIsInstance<B>()
+
 inline fun <T, R> T.then(block: (T) -> R): R {
     return block(this)
 }
+
+/* Byte */
+
+infix fun Byte.and(other: Byte): Byte = (toUByte().toInt() and other.toUByte().toInt()).toByte()
+infix fun Byte.or(other: Byte): Byte = (toUByte().toInt() or other.toUByte().toInt()).toByte()
+infix fun Byte.shl(other: Int): Byte = (toUByte().toInt() shl  other).toByte()
+infix fun Byte.shr(other: Int): Byte = (toUByte().toInt() shr other).toByte()
+
+infix fun Byte.and(other: Int): Byte = (this and other.toByte())
+infix fun Byte.or(other: Int): Byte = (this or other.toByte())
+
+infix fun Int.and(other: Byte): Int = (this and other.toUByte().toInt())
+infix fun Int.or(other: Byte): Int = (this or other.toUByte().toInt())

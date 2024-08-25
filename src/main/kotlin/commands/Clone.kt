@@ -38,6 +38,8 @@ object Clone : Subcommand("clone", "Clone remote repository") {
             references.find { it.hash == headHash }?.name ?: headHash.hash
         }
 
+        Local.directory = directory ?: "."
+
         // Initializes the local git repository with the defined head ref
         Local.writeGitDirectory(ref)
 
@@ -56,7 +58,7 @@ object Clone : Subcommand("clone", "Clone remote repository") {
         checkNotNull(tree) { "Could not find tree: ${commit.tree}" }
 
         // Write the current tree files
-        Local.writeTreeToDisk(Path.of(directory ?: "."), tree)
+        Local.writeTreeToDisk(tree)
     }
 }
 

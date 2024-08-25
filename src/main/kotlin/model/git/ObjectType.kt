@@ -10,9 +10,9 @@ enum class ObjectType(val value: Int) {
     REFERENCE_DELTA(7);
 
     companion object {
-        fun fromValue(value: Int): ObjectType {
-            return entries.find { it.value == value }
-                ?: throw IllegalArgumentException("$value [${value.toBinaryString()}] is not a valid git object type code")
+        fun fromValue(value: Byte): ObjectType {
+            return entries.find { it.value == value.toInt() }
+                ?: throw IllegalArgumentException("$value [${value.toInt().toBinaryString()}] is not a valid git object type code")
         }
 
         fun Int.toBinaryString() = Integer.toBinaryString(this)

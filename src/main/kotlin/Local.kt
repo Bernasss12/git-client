@@ -1,3 +1,4 @@
+import Remote.consumeVariableLenghtInteger
 import exception.ObjectNotFoundException
 import model.DeltaObjectHolder
 import model.GitObjectHolder
@@ -12,6 +13,7 @@ import model.references.Hash
 import model.references.PartialHash
 import model.references.Reference
 import util.*
+import util.ByteArrayConsumer.Companion.consume
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -19,31 +21,36 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.InflaterInputStream
-import kotlin.io.path.createDirectories
-import kotlin.io.path.exists
-import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.*
 
 object Local {
-    private val FOLDER: File = File("").normalize()
-    private val GIT_FOLDER: File = FOLDER + ".git"
-    private val GIT_OBJECTS_FOLDER: File = GIT_FOLDER + "objects"
-    private val GIT_REFS_FOLDER: File = GIT_FOLDER + "refs"
-    private val GIT_HEAD_FILE: File = GIT_FOLDER + "HEAD"
+    var directory = "."
 
-    private const val ROOT_TREE_NAME = ""
+    private val FOLDER: Path
+        get() = Path.of(directory).normalize()
+    private val GIT_FOLDER: Path
+        get() = FOLDER + ".git"
+    private val GIT_OBJECTS_FOLDER: Path
+        get() = GIT_FOLDER + "objects"
+    private val GIT_REFS_FOLDER: Path
+        get() = GIT_FOLDER + "refs"
+    private val GIT_HEAD_FILE: File
+        get() = GIT_FOLDER.toFile() + "HEAD"
+
+    private val ROOT_TREE_NAME = ""
 
     private val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
 
     fun writeGitDirectory(headReference: String) {
         check(GIT_FOLDER.createDirectoryAndParents())
-        check(GIT_OBJECTS_FOLDER.createParentDirectories())
-        check(GIT_REFS_FOLDER.createParentDirectories())
+        check(GIT_OBJECTS_FOLDER.createDirectoryAndParents())
+        check(GIT_REFS_FOLDER.createDirectoryAndParents())
         GIT_HEAD_FILE.writeText("ref: $headReference\n")
         check(GIT_HEAD_FILE.exists())
     }
 
-    fun writeTreeToDisk(folder: Path, baseTree: Tree) {
-        writeTreeToDisk(folder, baseTree, ROOT_TREE_NAME)
+    fun writeTreeToDisk(baseTree: Tree) {
+        writeTreeToDisk(FOLDER, baseTree, ROOT_TREE_NAME)
     }
 
     private fun writeTreeToDisk(parent: Path, tree: Tree, name: String) {
@@ -69,7 +76,7 @@ object Local {
     fun writeReferencesToDisk(references: List<ReferenceLine>) {
         val total = references.size
         references.forEachIndexed { index, reference ->
-            val file = (GIT_REFS_FOLDER + reference.name)
+            val file: File = GIT_FOLDER + File(reference.name)
             if (file.createParentDirectories()) {
                 printProgressbar(index, total, 100, "Writing references...")
                 file.writeText(reference.hash.hash)
@@ -78,16 +85,77 @@ object Local {
     }
 
     fun writeObjectsToDisk(holders: List<ObjectHolder>) {
-        holders.forEachIndexed { index, holder ->
-            printProgressbar(index, holders.size, 100, "Writing objects...")
-            when (holder) {
-                is DeltaObjectHolder -> Unit // TODO implement later
-                is GitObjectHolder -> writeObjectHolderToDisk(holder)
+        val (gitObjects, deltas) = holders.partitionByType<GitObjectHolder, DeltaObjectHolder>()
+        gitObjects.forEachIndexed { index, holder ->
+            printProgressbar(index, gitObjects.size, 100, "Writing objects...")
+            writeObjectFromHolderToDisk(holder)
+        }
+        deltas.forEachIndexed { index, holder ->
+            printProgressbar(index, deltas.size, 100, "Applying deltas...")
+            writeDeltaObjectHolderToDisk(holder)
+        }
+    }
+
+    sealed class Instruction {
+        companion object {
+            private fun isCopy(byte: UByte) = (byte and 0b1000_0000u) != 0b0u.toUByte()
+            private fun isInsert(byte: UByte) = !isCopy(byte)
+
+            // When copy
+            private fun getCopyOffset(byte: UByte) = (byte and 0b1111u).countOneBits()
+            private fun getCopySize(byte: UByte) = (byte and 0b0111_0000u).countOneBits()
+
+            // When insert
+            private fun getInsertSize(byte: UByte) = byte.toInt()
+
+            fun getInstruction(byte: UByte): Instruction {
+                return if (isCopy(byte)) {
+                    CopyInstruction(getCopyOffset(byte), getCopySize(byte))
+                } else {
+                    InsertInstruction(getInsertSize(byte))
+                }
             }
         }
     }
 
-    private fun writeObjectHolderToDisk(gitObjectHolder: GitObjectHolder) {
+    data class CopyInstruction(val offset: Int, val size: Int) : Instruction()
+    data class InsertInstruction(val length: Int) : Instruction()
+
+    private fun writeDeltaObjectHolderToDisk(holder: DeltaObjectHolder) {
+        val newObject = holder.bytes.consume {
+            val original = readObjectFromDiskByReference(holder.hash).getContent()
+            val originalSize = consumeVariableLenghtInteger()
+            val resultSize = consumeVariableLenghtInteger()
+            check(original.size == originalSize)  {
+                "Delta cannot be applied because original file did not match expected size: E:$originalSize != A:${original.size}"
+            }
+            val result = buildByteArray {
+                while (hasNext()) {
+                    val byte = consume().toUByte()
+                    when (val instruction = Instruction.getInstruction(byte)) {
+                        is CopyInstruction -> {
+                            val offsetBytes = peek(instruction.offset)
+                            val sizeBytes = peek(instruction.size)
+                            val offset = consume(instruction.offset).toLEInt()
+                            val size = consume(instruction.size).toLEInt()
+                            appendByteArray(original.takeRange(offset, size))
+                        }
+
+                        is InsertInstruction -> {
+                            appendByteArray(consume(instruction.length))
+                        }
+                    }
+                }
+            }
+            check(result.size == resultSize) {
+                "Delta was applied but result did not match expected size: E:$resultSize != A:${result.size}"
+            }
+            Object.fromBytes(ObjectType.BLOB, result)
+        }
+        writeObjectToDisk(newObject)
+    }
+
+    private fun writeObjectFromHolderToDisk(gitObjectHolder: GitObjectHolder) {
         writeObjectToDisk(Object.fromBytes(gitObjectHolder.type, gitObjectHolder.bytes))
     }
 
@@ -143,7 +211,7 @@ object Local {
 
     private fun findHashFromPartialHash(partialHash: PartialHash): Hash {
         val parent = GIT_OBJECTS_FOLDER.resolve(partialHash.take(2))
-        if (parent.notExists()) throw ObjectNotFoundException("${parent.absolutePath} does not exist.")
+        if (parent.notExists()) throw ObjectNotFoundException("${parent.absolutePathString()} does not exist.")
         return parent
             .listDirectoryEntries("${partialHash.drop(2)}*")
             .singleOrNull()
@@ -162,7 +230,7 @@ object Local {
     private fun File.notExists(): Boolean = !exists()
     private operator fun Path.plus(other: Path): Path = resolve(other)
 
-    private operator fun Path.plus(other: File): Path = resolve(other.toPath())
+    private operator fun Path.plus(other: File): File = resolve(other.toPath()).toFile()
     private operator fun Path.plus(other: String): Path = resolve(other)
     private fun Path.createDirectoryAndParents(): Boolean = createDirectories().exists()
 }

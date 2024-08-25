@@ -1,4 +1,5 @@
 @file:Suppress("unused")
+@file:OptIn(ExperimentalStdlibApi::class)
 
 package util
 
@@ -82,18 +83,27 @@ fun ByteArray.splitInTwo(predicate: (Byte) -> Boolean): Pair<ByteArray, ByteArra
     return first.build() to second.build()
 }
 
-fun ByteArray.toInt(): Int {
+fun ByteArray.toHexInt(): Int {
     require(this.size == 4) { "This method is supposed to turn a 4 byte array to an Int" }
     return String(this).toInt(16)
 }
 
-fun ByteArray.toIntRaw(): Int {
-    require(this.size == 4) { "This method is supposed to turn a 4 byte array to an Int" }
-    var result = 0
-    for (byte in this) {
-        result = (result shl 8) or (byte.toInt() and 0xFF)
-    }
-    return result
+fun ByteArray.toLEInt(): Int {
+    require(this.size in 0..4) { "This method is supposed to turn a byte array of size 1 to 4 to an Int" }
+    if (isEmpty()) return 0
+    return this.reversedArray().fold(0) { result, byte -> (result shl 8) or byte }
+}
+
+//fun ByteArray.toLEUInt(): UInt {
+//    require(this.size in 0..4) { "This method is supposed to turn a byte array of size 1 to 4 to an Int" }
+//    if (isEmpty()) return 0u
+//    return this.foldIndexed(0u) { index, result, byte -> result or (byte shl 8 * index) }
+//}
+
+fun ByteArray.toBEInt(): Int {
+    require(this.size in 1..4) { "This method is supposed to turn a byte array of size 1 to 4 to an Int" }
+    if (isEmpty()) return 0
+    return this.fold(0) { result, byte -> (result shl 8) or byte }
 }
 
 fun ByteArray.pad(length: Int, byte: Byte): ByteArray {
@@ -101,3 +111,9 @@ fun ByteArray.pad(length: Int, byte: Byte): ByteArray {
     val missing = ByteArray(length - size) { byte }
     return this + missing
 }
+
+fun ByteArray.takeRange(start: Int, length: Int): ByteArray {
+    return this.dropAsByteArray(start).takeAsByteArray(length)
+}
+
+infix fun Int.increasedBy(size: Int) = this until (this + size)

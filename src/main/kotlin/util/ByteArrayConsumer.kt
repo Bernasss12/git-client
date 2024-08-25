@@ -3,6 +3,14 @@ package util
 import java.util.zip.Inflater
 
 class ByteArrayConsumer(private var bytes: ByteArray) {
+
+    companion object {
+        fun <T> ByteArray.consume(block: ByteArrayConsumer.() -> T): T {
+            val consumer = ByteArrayConsumer(this)
+            return consumer.block()
+        }
+    }
+
     fun consumeUntil(byte: Byte): ByteArray {
         val index = bytes.indexOf(byte)
         val result = consume(index)

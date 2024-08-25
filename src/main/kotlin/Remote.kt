@@ -49,10 +49,16 @@ object Remote {
         val bytes = packResponse.readBytes()
         val consumer = ByteArrayConsumer(bytes)
 
+
+        val startLength = consumer.peek(4).toHexInt()
+        val start = consumer.consume(startLength, 4).asString()
+        check(start == "NAK\n") { "Must be have NAK." }
+
         val hash = Hash.fromByteArray(consumer.consumeLast(20))
         val computedHash = Hash.fromContentBytes(consumer.peekAll())
 
-        if (hash != computedHash) {
+
+        if (!hash.matches(computedHash)) {
             System.err.println(
                 """
                     Computed and received hashes don't match.
@@ -63,15 +69,11 @@ object Remote {
             )
         }
 
-        val startLength = consumer.peek(4).toInt()
-        val start = consumer.consume(startLength, 4).asString()
-        check(start == "NAK\n") { "Must be have NAK." }
-
         val signature = consumer.consume(4).asString()
         check(signature == "PACK") { "Signature must be 'PACK', not $signature" }
-        val version = consumer.consume(4).toIntRaw()
+        val version = consumer.consume(4).toBEInt()
         check(version in listOf(2, 3)) { "Version $version not supported." }
-        val objectCount = consumer.consume(4).toIntRaw()
+        val objectCount = consumer.consume(4).toBEInt()
 
         return buildList {
             repeat(objectCount) { index ->
@@ -99,48 +101,50 @@ object Remote {
         }
     }
 
-    private const val CONTINUATION_MASK = 0b10000000
+    private const val CONTINUATION_MASK: Byte = 0b10000000.toByte()
 
     private const val TYPE_MASK = 0b01110000
     private const val TYPE_SHIFT = 4
 
-    private const val INITIAL_SIZE_BIT_COUNT = 4
-    private const val INITIAL_SIZE_MASK = 0b00001111
+    private const val INITIAL_SIZE_BIT_COUNT: Int = 4
+    private const val INITIAL_SIZE_MASK: Int = 0b00001111
 
-    private const val CONTINUATION_SIZE_BIT_COUNT = 7
-    private const val CONTINUATION_SIZE_MASK = 0b01111111
+    private const val CONTINUATION_SIZE_BIT_COUNT: Int = 7
+    private const val CONTINUATION_SIZE_MASK: Int = 0b01111111
 
-    private const val ONE_BYTE_MASK = 0xFF
+    fun ByteArrayConsumer.consumeVariableLenghtInteger(initial: Byte? = null): Int {
+        // Checks the continuation bit
+        fun extra(byte: Byte): Boolean = (byte and CONTINUATION_MASK) != NULL_BYTE
+
+        var byte: Byte = initial ?: consume()
+        var needsExtra = extra(byte)
+        var usedBits = if (initial != null) INITIAL_SIZE_BIT_COUNT else CONTINUATION_SIZE_BIT_COUNT
+
+        var size = if (initial != null) INITIAL_SIZE_MASK and byte else CONTINUATION_SIZE_MASK and byte
+
+        while (needsExtra) {
+            byte = consume()
+
+            // Extract the extra size bits
+            val extraBits = CONTINUATION_SIZE_MASK and byte
+            size = size or (extraBits shl usedBits)
+
+            // Check if current byte asks for extra number information
+            needsExtra = extra(byte)
+            usedBits += CONTINUATION_SIZE_BIT_COUNT
+        }
+
+        return size
+    }
 
     private fun ByteArrayConsumer.parseSizeAndType(): Pair<Int, ObjectType> {
-        // Consume next byte and clear any possible stray bits
-        fun nextByte() = consume().toInt() and ONE_BYTE_MASK
-
-        // Checks the continuation bit
-        fun extra(byte: Int): Boolean = (byte and CONTINUATION_MASK) != 0
-
-
-        val byte = nextByte()
+        val byte = consume()
 
         // Extract the 3 bit value representing the type of the object
         val typeValue = (byte and TYPE_MASK) shr TYPE_SHIFT
 
         // Extract the first 4 bits of the size number
-        var size = byte and INITIAL_SIZE_MASK
-
-        var needsExtra = extra(byte)
-        var usedBits = INITIAL_SIZE_BIT_COUNT
-        while (needsExtra) {
-            val nextByte = nextByte()
-
-            // Extract the extra size bits
-            val extraBits = nextByte and CONTINUATION_SIZE_MASK
-            size = (extraBits shl usedBits) or size
-
-            // Check if current byte asks for extra number information
-            needsExtra = extra(nextByte)
-            usedBits += CONTINUATION_SIZE_BIT_COUNT
-        }
+        val size = consumeVariableLenghtInteger(byte)
 
         return size to ObjectType.fromValue(typeValue)
     }
@@ -149,11 +153,11 @@ object Remote {
         val lengthSize = 4
 
         fun peekLenght(consumer: ByteArrayConsumer): Int {
-            return consumer.peek(lengthSize).toInt()
+            return consumer.peek(lengthSize).toHexInt()
         }
 
         val start = String(consume(peekLenght(this@consumeRefsPckLines), lengthSize))
-        val flush = consume(4).toInt()
+        val flush = consume(4).toHexInt()
 
         check(start.startsWith("# service=git-upload-pack"))
         check(flush == 0)
@@ -189,7 +193,7 @@ object Remote {
         } while (true)
     }
 
-    fun HttpRequestBuilder.url(baseUrl: String, block: URLBuilder.() -> Unit) {
+    private fun HttpRequestBuilder.url(baseUrl: String, block: URLBuilder.() -> Unit) {
         val urlBuilder = URLBuilder(baseUrl)
         urlBuilder.block()
         url(urlBuilder.buildString())
