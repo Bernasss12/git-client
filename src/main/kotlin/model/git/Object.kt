@@ -2,7 +2,7 @@ package model.git
 
 import api.Printable
 import model.references.Hash
-import util.*
+import util.buildByteArray
 
 sealed class Object : Printable {
     val hash: Hash by lazy {
@@ -15,7 +15,9 @@ sealed class Object : Printable {
                 ObjectType.BLOB -> Blob(contentBytes)
                 ObjectType.TREE -> Tree(contentBytes)
                 ObjectType.COMMIT -> Commit.fromBytes(contentBytes)
-                else -> { throw IllegalArgumentException("$type is not a type that is supported to be written") }
+                else -> {
+                    throw IllegalArgumentException("$type is not a type that is supported to be written")
+                }
             }
         }
     }

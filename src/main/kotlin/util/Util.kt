@@ -70,7 +70,7 @@ fun printByteArrayComparison(expected: ByteArray, check: ByteArray) {
     val paddingByte: Byte = 1
 
     val output = check.pad(size, paddingByte).zip(expected.pad(size, paddingByte)).map {
-        Triple(it.first, if (it.first == it.second) 1 else if (it.first == paddingByte) 3 else if(it.second == paddingByte) 2 else 0, it.second) //  FIXME
+        Triple(it.first, if (it.first == it.second) 1 else if (it.first == paddingByte) 3 else if (it.second == paddingByte) 2 else 0, it.second) //  FIXME
     }
 
     val mistakes = output.count { it.second == 0 }
@@ -100,18 +100,23 @@ fun printByteArrayComparison(expected: ByteArray, check: ByteArray) {
             equals(" ") -> "⎵".yellow()
             equals("\r") -> "⇤".yellow()
 
-            first().code in 9 .. 0xd3 -> this
+            first().code in 9..0xd3 -> this
             else -> "☒".cyan()
         }
     }
 
-    val individualTransform: (Byte, Int) -> String = { value, mode -> value.toInt().toChar().toString().specialCharacters().padEndVisible(2).red(mode == 0).black(mode == 2 ) }
+    val individualTransform: (Byte, Int) -> String =
+        { value, mode -> value.toInt().toChar().toString().specialCharacters().padEndVisible(2).red(mode == 0).black(mode == 2) }
 
     val above = output.joinToString(prefix = top(length), postfix = "╮", separator = "┬") { "──" }
     val before = output.joinToString(prefix = prefixTwo, postfix = "│", separator = "│") { individualTransform(it.first, it.second) }
-    val first = output.joinToString(prefix = empty(length), postfix = "│", separator = "│") { it.first.toHexString().red(it.second == 0).black(it.second == 2 ) }
-    val second = output.joinToString(prefix = prefixDivider, postfix = "│", separator = "│") { if (it.second == 0) "↑↓".red() else if (it.second == 2) "↑↑".black() else if(it.second == 3) "↓↓".black() else "  " }
-    val third = output.joinToString(prefix = empty(length), postfix = "│", separator = "│") { it.third.toHexString().red(it.second == 0).black(it.second == 3 ) }
+    val first = output.joinToString(prefix = empty(length), postfix = "│", separator = "│") { it.first.toHexString().red(it.second == 0).black(it.second == 2) }
+    val second = output.joinToString(
+        prefix = prefixDivider,
+        postfix = "│",
+        separator = "│"
+    ) { if (it.second == 0) "↑↓".red() else if (it.second == 2) "↑↑".black() else if (it.second == 3) "↓↓".black() else "  " }
+    val third = output.joinToString(prefix = empty(length), postfix = "│", separator = "│") { it.third.toHexString().red(it.second == 0).black(it.second == 3) }
     val after = output.joinToString(prefix = prefixExpected, postfix = "│", separator = "│") { individualTransform(it.third, it.second) }
     val below = output.joinToString(prefix = bottom(length), postfix = "╯", separator = "┴") { "──" }
 
@@ -134,7 +139,7 @@ fun printProgressbar(index: Int, total: Int, width: Int, message: String) {
     val bar = "[" + "#".repeat(((current / total.toDouble()) * barWidth).roundToInt()).padEnd(barWidth) + "]"
     val line = "$bar$counter"
     print("\r$line $message")
-    if(current == total)
+    if (current == total)
         println()
 }
 
@@ -149,7 +154,7 @@ inline fun <T, R> T.then(block: (T) -> R): R {
 
 infix fun Byte.and(other: Byte): Byte = (toUByte().toInt() and other.toUByte().toInt()).toByte()
 infix fun Byte.or(other: Byte): Byte = (toUByte().toInt() or other.toUByte().toInt()).toByte()
-infix fun Byte.shl(other: Int): Byte = (toUByte().toInt() shl  other).toByte()
+infix fun Byte.shl(other: Int): Byte = (toUByte().toInt() shl other).toByte()
 infix fun Byte.shr(other: Int): Byte = (toUByte().toInt() shr other).toByte()
 
 infix fun Byte.and(other: Int): Byte = (this and other.toByte())

@@ -42,34 +42,38 @@ object Local {
     private val gitObjectCache: MutableMap<Hash, Object> = mutableMapOf()
 
     fun writeGitDirectory(headReference: String) {
-        check(GIT_FOLDER.createDirectoryAndParents())
-        check(GIT_OBJECTS_FOLDER.createDirectoryAndParents())
-        check(GIT_REFS_FOLDER.createDirectoryAndParents())
+        check(FOLDER.mkdirs())
+        check(GIT_FOLDER.mkdirs())
+        check(GIT_OBJECTS_FOLDER.mkdirs())
+        check(GIT_REFS_FOLDER.mkdirs())
         GIT_HEAD_FILE.writeText("ref: $headReference\n")
         check(GIT_HEAD_FILE.exists())
     }
 
     fun writeTreeToDisk(baseTree: Tree) {
-        writeTreeToDisk(FOLDER, baseTree, ROOT_TREE_NAME)
+        writeTreeToDisk(FOLDER, baseTree)
     }
 
-    private fun writeTreeToDisk(parent: Path, tree: Tree, name: String) {
-        if (parent.createDirectoryAndParents()) {
+    private fun writeTreeToDisk(parent: Path, tree: Tree) {
+        println("$parent/")
+        if (parent.mkdirs()) {
             tree.entries.forEach { treeEntry ->
+                val next = parent + treeEntry.path
                 when (val gitObject = treeEntry.gitObject) {
-                    is Tree -> writeTreeToDisk(parent = parent + name, tree = gitObject, name = treeEntry.path)
-                    is Blob -> writeFileToDisk(parent = parent, gitObject = gitObject, name = treeEntry.path, type = treeEntry.type)
+                    is Tree -> writeTreeToDisk(parent = next, tree = gitObject)
+                    is Blob -> writeFileToDisk(file = next.toFile(), gitObject = gitObject, type = treeEntry.type)
                     else -> throw IllegalStateException("There shouldn't be any tree entries that aren't other trees or blobs.")
                 }
             }
         }
     }
 
-    private fun writeFileToDisk(parent: Path, gitObject: Blob, name: String, type: Type) {
-        if (parent.exists()) {
-            val blobFile = (parent + name).toFile()
-            blobFile.writeBytes(gitObject.getContent())
-            blobFile.setExecutable(type.executable)
+    private fun writeFileToDisk(file: File, gitObject: Blob, type: Type) {
+        println(file)
+        if (file.createParentDirectories()) {
+            file.createNewFile()
+            file.writeText(String(gitObject.getContent()))
+            file.setExecutable(type.executable)
         }
     }
 
@@ -126,7 +130,7 @@ object Local {
             val original = readObjectFromDiskByReference(holder.hash).getContent()
             val originalSize = consumeVariableLenghtInteger()
             val resultSize = consumeVariableLenghtInteger()
-            check(original.size == originalSize)  {
+            check(original.size == originalSize) {
                 "Delta cannot be applied because original file did not match expected size: E:$originalSize != A:${original.size}"
             }
             val result = buildByteArray {
@@ -134,8 +138,6 @@ object Local {
                     val byte = consume().toUByte()
                     when (val instruction = Instruction.getInstruction(byte)) {
                         is CopyInstruction -> {
-                            val offsetBytes = peek(instruction.offset)
-                            val sizeBytes = peek(instruction.size)
                             val offset = consume(instruction.offset).toLEInt()
                             val size = consume(instruction.size).toLEInt()
                             appendByteArray(original.takeRange(offset, size))
@@ -218,19 +220,17 @@ object Local {
             ?.let { Hash.fromPath(it) }
             ?: throw ObjectNotFoundException("No objects matching partial hash ${partialHash.hash} were found.")
     }
+
     private fun Reference.toFile(): File = Paths.get(take(2), drop(2)).toFile()
+
     private operator fun File.plus(other: File): File = resolve(other)
-
-    private operator fun File.plus(other: Path): Path = toPath().resolve(other)
     private operator fun File.plus(other: String): File = resolve(other)
-    private fun File.listDirectoryEntries(glob: String): List<Path> = toPath().listDirectoryEntries(glob)
-    private fun File.createParentDirectories(): Boolean = parentFile.mkdirs() || parentFile.exists()
 
-    private fun File.createDirectoryAndParents(): Boolean = mkdirs().then { exists() }
-    private fun File.notExists(): Boolean = !exists()
+    private fun File.createParentDirectories(): Boolean = Path(parent).mkdirs()
+
     private operator fun Path.plus(other: Path): Path = resolve(other)
-
     private operator fun Path.plus(other: File): File = resolve(other.toPath()).toFile()
     private operator fun Path.plus(other: String): Path = resolve(other)
-    private fun Path.createDirectoryAndParents(): Boolean = createDirectories().exists()
+
+    private fun Path.mkdirs(): Boolean = toFile().mkdirs() || exists()
 }

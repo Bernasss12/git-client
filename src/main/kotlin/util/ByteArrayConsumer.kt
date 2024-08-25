@@ -28,6 +28,7 @@ class ByteArrayConsumer(private var bytes: ByteArray) {
         erase(count)
         return result
     }
+
     fun consumeLast(count: Int): ByteArray {
         val result = getLast(count)
         eraseLast(count)
@@ -48,6 +49,7 @@ class ByteArrayConsumer(private var bytes: ByteArray) {
     private fun erase(count: Int) {
         bytes = bytes.dropAsByteArray(count)
     }
+
     private fun eraseLast(count: Int) {
         bytes = bytes.dropLastAsByteArray(count)
     }
@@ -55,6 +57,7 @@ class ByteArrayConsumer(private var bytes: ByteArray) {
     fun consumeUntilAfter(lenght: Int, byte: Byte): ByteArray {
         return consume(bytes.indexOf(byte) + lenght + 1)
     }
+
     fun hasUntilAfter(lenght: Int, byte: Byte): Boolean {
         return bytes.indexOf(byte) + lenght <= bytes.size
     }

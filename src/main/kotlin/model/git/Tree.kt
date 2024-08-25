@@ -1,10 +1,11 @@
 package model.git
 
+import Local
 import api.Printable
 import model.git.Tree.TreeEntry.Companion.hasNextTreeEntry
 import model.git.tree.Type
-import util.*
 import model.references.Hash
+import util.*
 import java.io.File
 
 class Tree private constructor(val entries: List<TreeEntry>, private val bytes: ByteArray) : Object() {

@@ -12,7 +12,6 @@ import kotlinx.coroutines.runBlocking
 import model.git.Commit
 import model.git.Tree
 import model.references.Hash
-import java.nio.file.Path
 
 object Clone : Subcommand("clone", "Clone remote repository") {
 

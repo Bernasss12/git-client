@@ -1,7 +1,8 @@
 package model.git.commit
 
-import model.references.Hash
+import Local
 import model.git.Commit
+import model.references.Hash
 
 data class Parents(val primary: Hash?, val secondary: Hash?) {
     val primaryCommit: Commit? by lazy {

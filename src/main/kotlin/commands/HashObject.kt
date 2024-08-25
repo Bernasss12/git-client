@@ -2,6 +2,7 @@
 
 package commands
 
+import Local
 import kotlinx.cli.ArgType
 import kotlinx.cli.ExperimentalCli
 import kotlinx.cli.Subcommand

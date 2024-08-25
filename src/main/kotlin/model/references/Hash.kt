@@ -7,7 +7,7 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.io.path.name
 
-class Hash(hash: String): Reference(hash) {
+class Hash(hash: String) : Reference(hash) {
     init {
         require(hash.length == 40) { "[Hash.Constructor] Hash string length should be 40 characters long:\n[$hash] (${hash.length})" }
     }
