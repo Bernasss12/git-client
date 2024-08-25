@@ -33,7 +33,7 @@ object CommitTree : Subcommand(
         val commit = Commit.new(
             tree,
             parent,
-            message
+            "$message\n"
         )
         Local.writeObjectToDisk(commit)
 
